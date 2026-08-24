@@ -1,13 +1,14 @@
 (async function () {
     const isLoginPage = window.location.pathname.endsWith('login.html');
 
-    // Handle cross-tab storage changes (logging out or logging in on another tab)
+    // Clear legacy localStorage token if present so old persistent logins don't bypass tab isolation
+    localStorage.removeItem('vulnshield_token');
+
+    // Handle cross-tab storage changes (logging out on another tab)
     window.addEventListener('storage', (e) => {
         if (e.key === 'vulnshield_token') {
             if (!e.newValue && !isLoginPage) {
                 window.location.href = '/login.html';
-            } else if (e.newValue && isLoginPage) {
-                window.location.href = '/index.html';
             }
         }
     });
@@ -19,10 +20,10 @@
         window.location.href = '/login.html';
     };
 
-    const token = localStorage.getItem('vulnshield_token');
+    const token = sessionStorage.getItem('vulnshield_token');
 
     if (isLoginPage) {
-        // On login page: if token exists, verify and redirect to main app if valid
+        // On login page: if token exists in this tab, verify and redirect to main app if valid
         if (token) {
             try {
                 const resp = await fetch('/api/verify', {
@@ -32,7 +33,7 @@
                 if (resp.ok) {
                     window.location.href = '/index.html';
                 } else {
-                    localStorage.removeItem('vulnshield_token');
+                    sessionStorage.removeItem('vulnshield_token');
                 }
             } catch (e) {
                 console.warn('[VulnShield] Login page token check network error:', e.message);
@@ -55,7 +56,7 @@
         });
         if (!resp.ok) {
             // Token rejected — clear it and redirect to login
-            localStorage.removeItem('vulnshield_token');
+            sessionStorage.removeItem('vulnshield_token');
             window.location.href = '/login.html';
         }
     } catch (e) {
