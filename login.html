@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script src="auth.js"></script>
     <style>
         body { display:flex; justify-content:center; align-items:center; height:100vh; background:#0d0d0d; color:#e0e0e0; }
         .login-card { background:rgba(255,255,255,0.05); backdrop-filter:blur(8px); padding:2rem; border-radius:12px; width:320px; box-shadow:0 4px 12px rgba(0,0,0,0.4); }
@@ -21,9 +22,11 @@
 <body>
     <div class="login-card">
         <h2>BernishVuln_Shield Login</h2>
-        <input type="text" id="username" placeholder="Username" autocomplete="off" />
-        <input type="password" id="password" placeholder="Password" autocomplete="off" />
-        <button id="loginBtn">Login</button>
+        <form id="loginForm" onsubmit="return false;">
+            <input type="text" id="username" placeholder="Username" autocomplete="username" required />
+            <input type="password" id="password" placeholder="Password" autocomplete="current-password" required />
+            <button type="submit" id="loginBtn">Login</button>
+        </form>
         <div class="error" id="errorMsg"></div>
     </div>
     <script src="login.js"></script>
