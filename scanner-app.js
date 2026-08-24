@@ -16,7 +16,7 @@ const AppScanner = {
      */
     scan: async function (filename, content) {
         try {
-            const token = localStorage.getItem('vulnshield_token');
+            const token = sessionStorage.getItem('vulnshield_token');
             const response = await fetch('/api/scan/app', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
