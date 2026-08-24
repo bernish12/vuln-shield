@@ -36,7 +36,7 @@ const WebScanner = {
     scan: async function (domain, logCallback) {
         logCallback(`[SYSTEM] Initiating server‑side scan for: ${domain}`);
         try {
-            const token = localStorage.getItem('vulnshield_token');
+            const token = sessionStorage.getItem('vulnshield_token');
             const response = await fetch('/api/scan/web', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
