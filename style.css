@@ -265,6 +265,35 @@ body.cyber-theme {
     gap: 20px;
 }
 
+.live-clock-widget {
+    display: flex;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid var(--border-color);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-main);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.clock-divider {
+    margin: 0 8px;
+    color: var(--border-color);
+    font-weight: bold;
+}
+
+.live-date {
+    font-weight: 500;
+    color: #94a3b8;
+}
+
+.live-time {
+    font-weight: 600;
+    color: var(--accent);
+}
+
 .quick-stat {
     display: flex;
     flex-direction: column;
