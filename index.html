@@ -510,13 +510,21 @@
                     <div class="card">
                         <div class="card-header-actions">
                             <div>
-                                <h3 class="card-title">Live Vulnerability Feed</h3>
-                                <p class="text-muted small">Live stream of simulated Common Vulnerabilities and Exposures (CVEs) and active cyber advisories.</p>
+                                <h3 class="card-title">Live NVD / CVE Vulnerability Intelligence Search</h3>
+                                <p class="text-muted small">Search National Vulnerability Database (NVD) & live threat intelligence feeds for vulnerabilities.</p>
                             </div>
-                            <span class="badge badge-accent fa-pulse"><i class="fa-solid fa-circle-dot"></i> Live Stream</span>
+                            <span class="badge badge-accent fa-pulse"><i class="fa-solid fa-circle-dot"></i> Live NVD Sync</span>
                         </div>
 
-                        <div class="threat-feed-container mt-4" id="threat-feed-container">
+                        <!-- CVE Search Bar -->
+                        <div class="cve-search-bar mt-3 d-flex" style="gap: 10px;">
+                            <input type="text" id="cve-search-input" class="form-input" style="flex:1;" placeholder="Search by software name, CVE ID, or tech stack (e.g., Nginx, WordPress, OpenSSL, Apache)...">
+                            <button class="btn btn-primary" id="btn-search-cve">
+                                <i class="fa-solid fa-magnifying-glass"></i> Search CVE Database
+                            </button>
+                        </div>
+
+                        <div class="threat-feed-container mt-4" id="cve-results-container">
                             <!-- Populated dynamically -->
                         </div>
                     </div>
@@ -548,11 +556,11 @@
                         </div>
 
                         <div class="report-actions-container mt-4">
-                            <button class="btn btn-primary mr-2" id="btn-export-json">
-                                <i class="fa-solid fa-download"></i> Export JSON Report
+                            <button class="btn btn-primary mr-2" id="btn-export-pdf" onclick="window.print()">
+                                <i class="fa-solid fa-file-pdf"></i> Download PDF Report
                             </button>
-                            <button class="btn btn-secondary" onclick="window.print()">
-                                <i class="fa-solid fa-print"></i> Print Executive Summary
+                            <button class="btn btn-secondary mr-2" id="btn-export-json">
+                                <i class="fa-solid fa-download"></i> Export JSON Report
                             </button>
                         </div>
                     </div>
