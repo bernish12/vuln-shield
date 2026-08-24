@@ -19,8 +19,8 @@ async function performLogin(e) {
         });
         const data = await resp.json();
         if (resp.ok && data.success) {
-            // Save token in localStorage
-            localStorage.setItem('vulnshield_token', data.token);
+            // Save token in sessionStorage so each tab requires authentication
+            sessionStorage.setItem('vulnshield_token', data.token);
             // Redirect to dashboard
             window.location.href = '/index.html';
         } else {
