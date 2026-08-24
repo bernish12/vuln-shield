@@ -3,10 +3,40 @@ const fs = require('fs');
 const path = require('path');
 const dns = require('dns').promises;
 const https = require('https');
+const crypto = require('crypto');
 
 const PORT = process.env.PORT || 8000;
-// Simple in-memory token store for auth
-const validTokens = new Set();
+
+// ── HMAC-signed token helpers ──────────────────────────────────────────────
+// Using a fixed secret (env var preferred in production).
+// Tokens survive server restarts because we verify the signature, not a Set.
+const TOKEN_SECRET = process.env.TOKEN_SECRET || 'vulnshield-default-secret-change-me';
+const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function signToken(username) {
+    const payload = `${username}:${Date.now()}`;
+    const sig = crypto.createHmac('sha256', TOKEN_SECRET).update(payload).digest('hex');
+    return Buffer.from(`${payload}.${sig}`).toString('base64url');
+}
+
+function verifyToken(token) {
+    try {
+        const decoded = Buffer.from(token, 'base64url').toString('utf8');
+        const lastDot = decoded.lastIndexOf('.');
+        if (lastDot === -1) return false;
+        const payload = decoded.slice(0, lastDot);
+        const sig = decoded.slice(lastDot + 1);
+        const expectedSig = crypto.createHmac('sha256', TOKEN_SECRET).update(payload).digest('hex');
+        if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig))) return false;
+        // Check TTL
+        const colonIdx = payload.lastIndexOf(':');
+        const issuedAt = parseInt(payload.slice(colonIdx + 1), 10);
+        if (isNaN(issuedAt) || Date.now() - issuedAt > TOKEN_TTL_MS) return false;
+        return true;
+    } catch {
+        return false;
+    }
+}
 
 const mimeTypes = {
     '.html': 'text/html',
@@ -33,7 +63,7 @@ http.createServer((req, res) => {
                 return;
             }
             const token = authHeader.split(' ')[1];
-            if (!validTokens.has(token)) {
+            if (!verifyToken(token)) {
                 res.writeHead(401);
                 res.end(JSON.stringify({ error: 'Invalid token' }));
                 return;
@@ -130,9 +160,8 @@ async function handleApiRequest(req, res) {
         const { username, password } = body || {};
         // Simple hard‑coded credentials
         if (username === 'bernish2004cyber' && password === 'bernish@2004cyber') {
-            // Generate a naive token (base64 of username:timestamp)
-            const token = Buffer.from(`${username}:${Date.now()}`).toString('base64');
-            validTokens.add(token);
+            // Generate an HMAC-signed token — valid across server restarts
+            const token = signToken(username);
             res.writeHead(200);
             res.end(JSON.stringify({ success: true, token }));
         } else {
@@ -151,7 +180,8 @@ async function handleApiRequest(req, res) {
             return;
         }
         const token = authHeader.split(' ')[1];
-        if (validTokens.has(token)) {
+        // Verify cryptographically — no in-memory store needed
+        if (verifyToken(token)) {
             res.writeHead(200);
             res.end(JSON.stringify({ valid: true }));
         } else {
