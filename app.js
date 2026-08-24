@@ -13,6 +13,7 @@ const app = {
 
     // Initialization
     init: function () {
+        this.startLiveClock();
         this.setupNavigation();
         this.setupWebScanner();
         this.setupAppScanner();
@@ -24,6 +25,26 @@ const app = {
 
         // Run automated checks on load (quick environment status)
         this.runQuickEnvironmentScan();
+    },
+
+    startLiveClock: function () {
+        const dateEl = document.getElementById('live-date-text');
+        const timeEl = document.getElementById('live-time-text');
+        if (!dateEl || !timeEl) return;
+
+        const updateClock = () => {
+            const now = new Date();
+            
+            // Format date: e.g. "Sat, 15 Aug 2026"
+            const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+            dateEl.innerText = now.toLocaleDateString('en-US', options);
+            
+            // Format time: e.g. "09:49:16 PM"
+            timeEl.innerText = now.toLocaleTimeString('en-US', { hour12: true });
+        };
+
+        updateClock();
+        setInterval(updateClock, 1000);
     },
 
     // 1. Core Routing & Navigation
@@ -591,7 +612,7 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
                 }
             });
             try {
-                const token = localStorage.getItem('vulnshield_token');
+                const token = sessionStorage.getItem('vulnshield_token');
                 const response = await fetch('/api/scan/device', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
