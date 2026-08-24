@@ -1,5 +1,6 @@
 (async function () {
-    const isLoginPage = window.location.pathname.endsWith('login.html');
+    const rawPath = window.location.pathname.toLowerCase();
+    const isLoginPage = rawPath.endsWith('login.html') || rawPath.endsWith('/login') || rawPath === '/login';
 
     // Clear legacy localStorage token if present so old persistent logins don't bypass tab isolation
     localStorage.removeItem('vulnshield_token');
