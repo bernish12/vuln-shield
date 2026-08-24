@@ -42,7 +42,7 @@ const OwaspScanner = {
     scan: async function (targetUrl, logCallback) {
         logCallback(`[SYSTEM] Initiating OWASP Top 10 analysis for: ${targetUrl}`);
         try {
-            const token = localStorage.getItem('vulnshield_token');
+            const token = sessionStorage.getItem('vulnshield_token');
             const response = await fetch('/api/scan/owasp', {
                 method: 'POST',
                 headers: {
