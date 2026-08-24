@@ -54,17 +54,34 @@ const mimeTypes = {
 http.createServer((req, res) => {
     // Check if it is an API request
     if (req.url.startsWith('/api/')) {
+        // Handle preflight OPTIONS requests for API routes
+        if (req.method === 'OPTIONS') {
+            res.writeHead(204, {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+            });
+            res.end();
+            return;
+        }
+
         // Authenticate for protected scan endpoints
         if (req.url.startsWith('/api/scan/') && req.method === 'POST') {
             const authHeader = req.headers['authorization'];
             if (!authHeader || !authHeader.startsWith('Bearer ')) {
-                res.writeHead(401);
+                res.writeHead(401, {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                });
                 res.end(JSON.stringify({ error: 'Unauthorized' }));
                 return;
             }
             const token = authHeader.split(' ')[1];
             if (!verifyToken(token)) {
-                res.writeHead(401);
+                res.writeHead(401, {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                });
                 res.end(JSON.stringify({ error: 'Invalid token' }));
                 return;
             }
@@ -75,8 +92,10 @@ http.createServer((req, res) => {
 
     // Otherwise serve static files
     let safeUrl = req.url.split('?')[0];
-    if (safeUrl === '/') {
+    if (safeUrl === '/' || safeUrl === '/index') {
         safeUrl = '/index.html';
+    } else if (safeUrl === '/login') {
+        safeUrl = '/login.html';
     }
     
     const filePath = path.join(__dirname, safeUrl);
@@ -107,7 +126,7 @@ http.createServer((req, res) => {
                 'Pragma': 'no-cache',
                 'Expires': '0'
             });
-            res.end(content, 'utf-8');
+            res.end(content);
         }
     });
 }).listen(PORT, () => {
@@ -136,7 +155,16 @@ function readJsonBody(req) {
 
 // Route API requests
 async function handleApiRequest(req, res) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.setHeader('Content-Type', 'application/json');
+
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
 
     const parsedUrl = req.url.split('?')[0];
 
