@@ -162,6 +162,43 @@ const app = {
             try {
                 const findings = await WebScanner.scan(cleanDomain, addLog);
                 
+                // Perform Subdomain Recon & Port Audit
+                addLog(`[SYSTEM] Triggering Subdomain Reconnaissance & Port Audit for ${cleanDomain}...`);
+                try {
+                    const token = sessionStorage.getItem('vulnshield_token');
+                    const reconResp = await fetch('/api/scan/recon', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
+                        body: JSON.stringify({ domain: cleanDomain })
+                    });
+                    if (reconResp.ok) {
+                        const reconData = await reconResp.json();
+                        if (reconData.subdomains && reconData.subdomains.length > 0) {
+                            addLog(`[RECON] Discovered ${reconData.subdomains.length} active subdomains via Certificate Transparency.`);
+                            findings.push({
+                                severity: 'info',
+                                title: `Subdomain Enumeration (${reconData.subdomains.length} Discovered)`,
+                                desc: `Passive Certificate Transparency lookup revealed active subdomains: ${reconData.subdomains.slice(0, 8).join(', ')}${reconData.subdomains.length > 8 ? '...' : ''}`,
+                                solution: 'Monitor subdomains and ensure internal staging subdomains are not exposed to public DNS.'
+                            });
+                        }
+                        if (reconData.portAudit) {
+                            const openPorts = reconData.portAudit.filter(p => p.status === 'OPEN');
+                            if (openPorts.length > 0) {
+                                addLog(`[PORT SCAN] Open ports detected: ${openPorts.map(p => `${p.port}/${p.service}`).join(', ')}`);
+                                findings.push({
+                                    severity: openPorts.some(p => [21, 22, 3306, 5432].includes(p.port)) ? 'warning' : 'info',
+                                    title: `Active Port Audit (${openPorts.length} Open Ports)`,
+                                    desc: `Discovered open network services: ${openPorts.map(p => `${p.port} (${p.service})`).join(', ')}`,
+                                    solution: 'Close unnecessary public ports or restrict access using firewall rules.'
+                                });
+                            }
+                        }
+                    }
+                } catch (e) {
+                    addLog(`[WARN] Subdomain recon module skipped: ${e.message}`);
+                }
+
                 // Store results
                 localStorage.setItem('vulnshield_web_scan', JSON.stringify({
                     domain: cleanDomain,
@@ -176,7 +213,7 @@ const app = {
 
                 webStatus.innerText = 'COMPLETED';
                 webStatus.className = 'status-badge completed';
-                webStatusText.innerText = `Audit completed. Checked DNS records and HTTP header profiles.`;
+                webStatusText.innerText = `Audit completed. Checked DNS records, subdomains, open ports, and HTTP header profiles.`;
                 this.showToast('Domain Scan Complete', `Audited parameters for ${cleanDomain}`);
                 this.recalculateGlobalScore();
 
@@ -834,41 +871,73 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
         }
     },
 
-    // 6. Threat intelligence Advisory Feed
+    // 6. Threat intelligence Advisory Feed & Live NVD Sync
     loadThreatIntelFeed: function () {
-        const feedContainer = document.getElementById('threat-feed-container');
-        if (!feedContainer) return;
+        const feedContainer = document.getElementById('cve-results-container') || document.getElementById('threat-feed-container');
+        const searchBtn = document.getElementById('btn-search-cve');
+        const searchInput = document.getElementById('cve-search-input');
 
-        const sampleCVEs = [
-            { id: 'CVE-2026-10492', title: 'Arbitrary Code Execution in Web App Framework', desc: 'Remote unauthenticated execution vulnerability allows remote users to upload code to web root context.', severity: 'high', time: '10 minutes ago' },
-            { id: 'CVE-2026-9281', title: 'SQL Injection in REST Endpoint Parser', desc: 'Improper sanitation of request parameters allows backend query structure injection.', severity: 'high', time: '2 hours ago' },
-            { id: 'CVE-2025-41903', title: 'Cryptographic Hardcoded Seed Leakage', desc: 'Entropy generation relies on static seed keys in mobile library dependencies.', severity: 'med', time: '1 day ago' },
-            { id: 'CVE-2025-33921', title: 'HSTS Down-convert Protocol Bypass', desc: 'Network routing gateway drops Strict-Transport headers inside legacy proxies.', severity: 'med', time: '2 days ago' }
-        ];
+        const executeCveSearch = async (queryStr) => {
+            if (!feedContainer) return;
+            feedContainer.innerHTML = '<div class="matrix-empty"><i class="fa-solid fa-spinner fa-spin"></i> Querying Live NVD Database & Threat Intelligence...</div>';
+            
+            try {
+                const token = sessionStorage.getItem('vulnshield_token');
+                const resp = await fetch('/api/threats/cve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ query: queryStr || 'Nginx' })
+                });
+                const data = await resp.json();
+                if (data && data.cves && data.cves.length > 0) {
+                    feedContainer.innerHTML = '';
+                    data.cves.forEach(item => {
+                        const card = document.createElement('div');
+                        card.className = 'feed-item';
+                        const isHigh = item.severity === 'HIGH' || item.severity === 'CRITICAL' || (parseFloat(item.score) >= 7.0);
+                        const severityClass = isHigh ? 'high' : 'med';
+                        const icon = isHigh ? 'fa-solid fa-radiation' : 'fa-solid fa-triangle-exclamation';
 
-        feedContainer.innerHTML = '';
-        sampleCVEs.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'feed-item';
+                        card.innerHTML = `
+                            <div class="feed-badge-icon ${severityClass}">
+                                <i class="${icon}"></i>
+                            </div>
+                            <div class="feed-body">
+                                <div class="feed-meta">
+                                    <span class="feed-id">${item.cveId}</span>
+                                    <span class="feed-time">Published: ${item.published || 'Recent'}</span>
+                                    <span class="badge ${isHigh ? 'badge-danger' : 'badge-warning'}" style="margin-left:8px;">CVSS ${item.score}</span>
+                                </div>
+                                <div class="feed-title">${item.cveId} - Vulnerability Notice</div>
+                                <div class="feed-desc">${item.summary}</div>
+                            </div>
+                        `;
+                        feedContainer.appendChild(card);
+                    });
+                } else {
+                    feedContainer.innerHTML = '<div class="matrix-empty text-muted"><i class="fa-solid fa-circle-info"></i> No matching CVE entries found for search query.</div>';
+                }
+            } catch (e) {
+                console.error('CVE fetch error:', e);
+                feedContainer.innerHTML = '<div class="matrix-empty text-muted"><i class="fa-solid fa-circle-exclamation"></i> Threat intel database sync unavailable.</div>';
+            }
+        };
 
-            const severityClass = item.severity === 'high' ? 'high' : 'med';
-            const icon = item.severity === 'high' ? 'fa-solid fa-radiation' : 'fa-solid fa-triangle-exclamation';
+        if (searchBtn && searchInput) {
+            searchBtn.addEventListener('click', () => {
+                const q = searchInput.value.trim();
+                if (q) executeCveSearch(q);
+            });
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const q = searchInput.value.trim();
+                    if (q) executeCveSearch(q);
+                }
+            });
+        }
 
-            card.innerHTML = `
-                <div class="feed-badge-icon ${severityClass}">
-                    <i class="${icon}"></i>
-                </div>
-                <div class="feed-body">
-                    <div class="feed-meta">
-                        <span class="feed-id">${item.id}</span>
-                        <span class="feed-time">${item.time}</span>
-                    </div>
-                    <div class="feed-title">${item.title}</div>
-                    <div class="feed-desc">${item.desc}</div>
-                </div>
-            `;
-            feedContainer.appendChild(card);
-        });
+        // Load initial default feed query
+        executeCveSearch('Nginx');
     },
 
     // Helper: Toast Notifications
