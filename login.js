@@ -4,11 +4,18 @@ async function performLogin(e) {
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
     const errorMsg = document.getElementById('errorMsg');
+    const loginBtn = document.getElementById('loginBtn');
+    
     errorMsg.textContent = '';
 
     if (!username || !password) {
         errorMsg.textContent = 'Please enter both username and password.';
         return;
+    }
+
+    if (loginBtn) {
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Authenticating...';
     }
     
     try {
@@ -25,10 +32,18 @@ async function performLogin(e) {
             window.location.href = '/index.html';
         } else {
             errorMsg.textContent = data.error || 'Invalid username or password.';
+            if (loginBtn) {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login';
+            }
         }
     } catch (e) {
         console.error('Login error:', e);
         errorMsg.textContent = 'Network error. Please try again.';
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Login';
+        }
     }
 }
 
