@@ -81,6 +81,10 @@
                     <i class="fa-solid fa-file-shield"></i>
                     <span>Audit Reports</span>
                 </a>
+                <a href="javascript:void(0)" onclick="logout()" class="nav-item text-danger" style="margin-top: 1rem; color: #ff5252;">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Logout</span>
+                </a>
             </nav>
 
             <div class="sidebar-footer">
@@ -103,12 +107,24 @@
                     <p id="page-subtitle">Real-time client-side security assessment engine</p>
                 </div>
                 <div class="header-actions">
+                    <!-- Live Calendar & Time Widget -->
+                    <div class="live-clock-widget" id="live-clock-widget">
+                        <i class="fa-regular fa-calendar-days text-accent mr-1"></i>
+                        <span id="live-date-text" class="live-date">-- --- ----</span>
+                        <span class="clock-divider">|</span>
+                        <i class="fa-regular fa-clock text-accent mr-1"></i>
+                        <span id="live-time-text" class="live-time">--:--:--</span>
+                    </div>
+
                     <div class="quick-stat">
                         <span class="stat-label">RISK FACTOR:</span>
                         <span class="stat-value text-green" id="global-risk-factor">EXCELLENT</span>
                     </div>
                     <button class="btn btn-primary" id="btn-quick-audit">
                         <i class="fa-solid fa-bolt"></i> Quick Audit
+                    </button>
+                    <button class="btn" onclick="logout()" title="Logout" style="background: rgba(255, 82, 82, 0.15); border: 1px solid rgba(255, 82, 82, 0.3); color: #ff5252; cursor: pointer; padding: 0.5rem 0.9rem; border-radius: 8px; font-weight: 600;">
+                        <i class="fa-solid fa-right-from-bracket"></i> Logout
                     </button>
                 </div>
             </header>
@@ -190,15 +206,6 @@
                     <div class="grid-layout cols-3">
                         <!-- Vector Card 1: Web -->
                         <div class="card hover-expand text-center pointer" onclick="app.switchTab('scan-web')">
-                           <script>
-    (function() {
-        const token = localStorage.getItem('vulnshield_token');
-        if (!token) {
-            // Not logged in, redirect to login page
-            window.location.href = '/login.html';
-        }
-    })();
-</script>
                             <div class="vector-icon bg-soft-blue text-blue">
                                 <i class="fa-solid fa-globe"></i>
                             </div>
