@@ -245,13 +245,48 @@ const app = {
             else if (f.severity === 'warning') icon = 'fa-triangle-exclamation text-yellow';
             else if (f.severity === 'info') icon = 'fa-circle-info text-blue';
 
-            let solutionHtml = '';
-            if (f.solution) {
-                solutionHtml = `
-                    <div class="finding-solution">
-                        <div class="finding-solution-title">Suggested Remediation:</div>
-                        <div>${f.solution}</div>
-                        ${f.code ? `<code class="finding-solution-code">${f.code}</code>` : ''}
+            const rem = f.remediation || {};
+            const hasFix = f.severity !== 'passed' && (rem.codeFix || f.code || f.solution);
+            const fixId = `fix-drawer-${Math.random().toString(36).substring(2, 9)}`;
+
+            let fixToggleBtnHtml = '';
+            let fixDrawerHtml = '';
+
+            if (hasFix) {
+                fixToggleBtnHtml = `
+                    <button class="btn-fix-toggle" data-target="${fixId}">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> View Ready Fix & Patch
+                    </button>
+                `;
+
+                const codeSnippet = rem.codeFix || f.code || f.solution || '';
+                const cweText = rem.cwe || 'CWE-693';
+                const impactText = rem.impact || 'Presents security risks if left unpatched.';
+                const summaryText = rem.summary || f.solution || 'Apply security patch recommendation below.';
+
+                fixDrawerHtml = `
+                    <div id="${fixId}" class="fix-drawer d-none">
+                        <div class="fix-drawer-header">
+                            <span class="cwe-badge"><i class="fa-solid fa-shield-halved"></i> ${cweText}</span>
+                            <span style="font-size: 11px; color: #94a3b8; font-weight: 600;">Automated Remediation Guide</span>
+                        </div>
+                        <div class="fix-impact-box">
+                            <strong><i class="fa-solid fa-triangle-exclamation"></i> Security Risk Impact:</strong> ${impactText}
+                        </div>
+                        <div style="font-size: 12px; margin-bottom: 8px; color: #e2e8f0;">
+                            <strong>Recommended Fix:</strong> ${summaryText}
+                        </div>
+                        ${codeSnippet ? `
+                            <div class="fix-code-block">
+                                <div class="fix-code-header">
+                                    <span><i class="fa-solid fa-code"></i> Ready-to-Use Code Fix</span>
+                                    <button class="btn-copy-fix" data-code="${encodeURIComponent(codeSnippet)}">
+                                        <i class="fa-regular fa-copy"></i> Copy Fix
+                                    </button>
+                                </div>
+                                <pre class="fix-code-content"><code>${this.escapeHtml(codeSnippet)}</code></pre>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             }
@@ -265,10 +300,54 @@ const app = {
                     <span class="severity-label ${f.severity === 'warning' ? 'warning' : f.severity}">${f.severity}</span>
                 </div>
                 <div class="finding-desc">${f.desc}</div>
-                ${solutionHtml}
+                ${fixToggleBtnHtml}
+                ${fixDrawerHtml}
             `;
+
+            // Wire fix toggle button
+            const btnToggle = item.querySelector('.btn-fix-toggle');
+            if (btnToggle) {
+                btnToggle.addEventListener('click', () => {
+                    const drawer = item.querySelector(`#${fixId}`);
+                    if (drawer) {
+                        drawer.classList.toggle('d-none');
+                        const isHidden = drawer.classList.contains('d-none');
+                        btnToggle.innerHTML = isHidden 
+                            ? `<i class="fa-solid fa-wand-magic-sparkles"></i> View Ready Fix & Patch`
+                            : `<i class="fa-solid fa-chevron-up"></i> Hide Fix Drawer`;
+                    }
+                });
+            }
+
+            // Wire copy button
+            const btnCopy = item.querySelector('.btn-copy-fix');
+            if (btnCopy) {
+                btnCopy.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const rawCode = decodeURIComponent(btnCopy.getAttribute('data-code'));
+                    navigator.clipboard.writeText(rawCode).then(() => {
+                        btnCopy.innerHTML = `<i class="fa-solid fa-check"></i> Copied!`;
+                        btnCopy.style.background = 'rgba(16, 185, 129, 0.4)';
+                        btnCopy.style.color = '#ffffff';
+                        this.showToast('Copied to Clipboard', 'Ready fix code snippet copied successfully.');
+                        setTimeout(() => {
+                            btnCopy.innerHTML = `<i class="fa-regular fa-copy"></i> Copy Fix`;
+                            btnCopy.style.background = '';
+                            btnCopy.style.color = '';
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Copy failed', err);
+                    });
+                });
+            }
+
             container.appendChild(item);
         });
+    },
+
+    escapeHtml: function (str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     },
 
     updateFilterCounts: function (findings, type) {
