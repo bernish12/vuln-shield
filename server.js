@@ -9,12 +9,28 @@ const PORT = process.env.PORT || 8000;
 
 // ── HMAC-signed token helpers ──────────────────────────────────────────────
 // Using a fixed secret (env var preferred in production).
-// Tokens survive server restarts because we verify the signature, not a Set.
 const TOKEN_SECRET = process.env.TOKEN_SECRET || 'vulnshield-default-secret-change-me';
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-function signToken(username) {
-    const payload = `${username}:${Date.now()}`;
+// --- Global State for Advanced Analytics ---
+const SESSIONS_FILE = path.join(__dirname, 'sessions.json');
+const LOGIN_HISTORY_FILE = path.join(__dirname, 'login-history.json');
+let activeSessions = {};
+let loginHistory = [];
+
+const USERS = {
+    'bernish2004cyber': { password: 'bernish@2004cyber08', role: 'admin' },
+    'vulnshield12': { password: 'vulnshield@12', role: 'user' }
+};
+
+try { if (fs.existsSync(SESSIONS_FILE)) activeSessions = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8')); } catch(e) {}
+try { if (fs.existsSync(LOGIN_HISTORY_FILE)) loginHistory = JSON.parse(fs.readFileSync(LOGIN_HISTORY_FILE, 'utf8')); } catch(e) {}
+
+function saveSessions() { fs.writeFile(SESSIONS_FILE, JSON.stringify(activeSessions, null, 2), () => {}); }
+function saveLoginHistory() { fs.writeFile(LOGIN_HISTORY_FILE, JSON.stringify(loginHistory, null, 2), () => {}); }
+
+function signToken(username, sessionId) {
+    const payload = `${username}:${sessionId}:${Date.now()}`;
     const sig = crypto.createHmac('sha256', TOKEN_SECRET).update(payload).digest('hex');
     return Buffer.from(`${payload}.${sig}`).toString('base64url');
 }
@@ -28,10 +44,20 @@ function verifyToken(token) {
         const sig = decoded.slice(lastDot + 1);
         const expectedSig = crypto.createHmac('sha256', TOKEN_SECRET).update(payload).digest('hex');
         if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig))) return false;
-        // Check TTL
-        const colonIdx = payload.lastIndexOf(':');
-        const issuedAt = parseInt(payload.slice(colonIdx + 1), 10);
+        
+        // Check TTL and Session
+        const parts = payload.split(':');
+        if (parts.length < 3) return false;
+        const sessionId = parts[1];
+        const issuedAt = parseInt(parts[2], 10);
+        
         if (isNaN(issuedAt) || Date.now() - issuedAt > TOKEN_TTL_MS) return false;
+        if (!activeSessions[sessionId]) return false; // Session was kicked or doesn't exist
+        
+        // Update last active time
+        activeSessions[sessionId].lastActive = new Date().toISOString();
+        saveSessions();
+        
         return true;
     } catch {
         return false;
@@ -51,8 +77,42 @@ const mimeTypes = {
     '.ico': 'image/x-icon'
 };
 
+const LOGS_FILE = path.join(__dirname, 'visitor-logs.json');
+
+function logVisit(req) {
+    if (req.url.startsWith('/api/') || req.method !== 'GET') return;
+    
+    // Ignore static assets to prevent log bloat
+    if (req.url.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|json|xml|txt)$/i)) return;
+
+    const ip = req.socket.remoteAddress || req.headers['x-forwarded-for'] || 'Unknown IP';
+    const userAgent = req.headers['user-agent'] || 'Unknown Device';
+    const url = req.url;
+    const timestamp = new Date().toISOString();
+
+    const logEntry = { timestamp, ip, userAgent, url };
+
+    fs.readFile(LOGS_FILE, 'utf8', (err, data) => {
+        let logs = [];
+        if (!err && data) {
+            try {
+                logs = JSON.parse(data);
+            } catch (e) {}
+        }
+        // Insert new logs at the beginning
+        logs.unshift(logEntry);
+        // Keep only last 1000 logs
+        if (logs.length > 1000) logs = logs.slice(0, 1000);
+        
+        fs.writeFile(LOGS_FILE, JSON.stringify(logs, null, 2), (err) => {
+            if (err) console.error('Error writing visitor log:', err);
+        });
+    });
+}
+
 // Start server
 http.createServer((req, res) => {
+    logVisit(req);
     // Check if it is an API request
     if (req.url.startsWith('/api/')) {
         // Handle preflight OPTIONS requests for API routes
@@ -171,10 +231,86 @@ async function handleApiRequest(req, res) {
 
     const parsedUrl = req.url.split('?')[0];
 
-    // Allow GET for the verify endpoint only
-    if (req.method !== 'POST' && parsedUrl !== '/api/verify') {
+    // Allow GET for the verify and analytics endpoints
+    if (req.method !== 'POST' && parsedUrl !== '/api/verify' && parsedUrl !== '/api/analytics/dashboard') {
         res.writeHead(405);
         res.end(JSON.stringify({ error: 'Method Not Allowed' }));
+        return;
+    }
+
+    // Analytics Dashboard endpoint handling
+    if (parsedUrl === '/api/analytics/dashboard') {
+        const authHeader = req.headers['authorization'];
+        if (!authHeader || !authHeader.startsWith('Bearer ') || !verifyToken(authHeader.split(' ')[1])) {
+            res.writeHead(401);
+            res.end(JSON.stringify({ error: 'Unauthorized' }));
+            return;
+        }
+
+        const tokenStr = authHeader.split(' ')[1];
+        const decodedPayload = Buffer.from(tokenStr, 'base64url').toString('utf8');
+        const reqUsername = decodedPayload.split(':')[0];
+        const sessionId = decodedPayload.split(':')[1];
+        const isAdmin = USERS[reqUsername] && USERS[reqUsername].role === 'admin';
+
+        fs.readFile(LOGS_FILE, 'utf8', (err, data) => {
+            let visitorLogs = [];
+            if (!err && data) {
+                try { visitorLogs = JSON.parse(data); } catch(e){}
+            }
+            
+            let filteredSessions = activeSessions;
+            if (!isAdmin) {
+                filteredSessions = {};
+                if (activeSessions[sessionId]) filteredSessions[sessionId] = activeSessions[sessionId];
+            }
+
+            res.writeHead(200);
+            res.end(JSON.stringify({
+                activeSessions: filteredSessions,
+                loginHistory: isAdmin ? loginHistory : [],
+                visitorLogs: isAdmin ? visitorLogs : []
+            }));
+        });
+        return;
+    }
+
+    // Analytics Kick Session endpoint
+    if (parsedUrl === '/api/analytics/kick') {
+        const authHeader = req.headers['authorization'];
+        if (!authHeader || !authHeader.startsWith('Bearer ') || !verifyToken(authHeader.split(' ')[1])) {
+            res.writeHead(401);
+            res.end(JSON.stringify({ error: 'Unauthorized' }));
+            return;
+        }
+
+        // Role Check
+        const tokenStr = authHeader.split(' ')[1];
+        const decodedPayload = Buffer.from(tokenStr, 'base64url').toString('utf8');
+        const reqUsername = decodedPayload.split(':')[0];
+        if (!USERS[reqUsername] || USERS[reqUsername].role !== 'admin') {
+            res.writeHead(403);
+            res.end(JSON.stringify({ error: 'Forbidden: Admins only' }));
+            return;
+        }
+
+        let body;
+        try {
+            body = await readJsonBody(req);
+        } catch(e) {
+            res.writeHead(400); res.end(JSON.stringify({ error: 'Invalid body' })); return;
+        }
+
+        const sessionIdToKick = body.sessionId;
+        if (sessionIdToKick && activeSessions[sessionIdToKick]) {
+            delete activeSessions[sessionIdToKick];
+            saveSessions();
+            res.writeHead(200);
+            res.end(JSON.stringify({ success: true }));
+        } else {
+            res.writeHead(404);
+            res.end(JSON.stringify({ success: false, error: 'Session not found' }));
+        }
         return;
     }
 
@@ -189,13 +325,40 @@ async function handleApiRequest(req, res) {
             return;
         }
         const { username, password } = body || {};
-        // Simple hard‑coded credentials
-        if (username === 'bernish2004cyber' && password === 'bernish@2004cyber') {
-            // Generate an HMAC-signed token — valid across server restarts
-            const token = signToken(username);
+
+        const ip = req.socket.remoteAddress || req.headers['x-forwarded-for'] || 'Unknown IP';
+        const userAgent = req.headers['user-agent'] || 'Unknown Device';
+        const timestamp = new Date().toISOString();
+
+        // Credentials check against USERS object
+        if (username && USERS[username] && USERS[username].password === password) {
+            const sessionId = crypto.randomBytes(16).toString('hex');
+            
+            // Create Session
+            activeSessions[sessionId] = {
+                ip,
+                userAgent,
+                username,
+                role: USERS[username].role,
+                loginTime: timestamp,
+                lastActive: timestamp
+            };
+            saveSessions();
+
+            // Log Success
+            loginHistory.unshift({ timestamp, ip, userAgent, username, status: 'success' });
+            if (loginHistory.length > 500) loginHistory = loginHistory.slice(0, 500);
+            saveLoginHistory();
+
+            const token = signToken(username, sessionId);
             res.writeHead(200);
             res.end(JSON.stringify({ success: true, token }));
         } else {
+            // Log Failure
+            loginHistory.unshift({ timestamp, ip, userAgent, username, status: 'failed' });
+            if (loginHistory.length > 500) loginHistory = loginHistory.slice(0, 500);
+            saveLoginHistory();
+
             res.writeHead(401);
             res.end(JSON.stringify({ success: false, error: 'Invalid credentials' }));
         }
