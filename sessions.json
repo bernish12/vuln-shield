@@ -38,21 +38,5 @@
     "role": "user",
     "loginTime": "2026-08-26T02:02:13.553Z",
     "lastActive": "2026-08-26T02:02:13.569Z"
-  },
-  "0e409fdc9e2593e7bba40825e7588f32": {
-    "ip": "::1",
-    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
-    "username": "bernish2004cyber",
-    "role": "admin",
-    "loginTime": "2026-08-26T10:50:43.357Z",
-    "lastActive": "2026-08-26T10:56:49.015Z"
-  },
-  "df1c5fa4d7393f81e966c624f9d1b117": {
-    "ip": "::1",
-    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
-    "username": "bernish2004cyber",
-    "role": "admin",
-    "loginTime": "2026-08-26T10:57:22.115Z",
-    "lastActive": "2026-08-26T10:57:29.218Z"
   }
 }
