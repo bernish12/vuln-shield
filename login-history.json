@@ -1,26 +1,5 @@
 [
   {
-    "timestamp": "2026-08-26T10:40:17.822Z",
-    "ip": "::1",
-    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
-    "username": "bernish2004cyber",
-    "status": "success"
-  },
-  {
-    "timestamp": "2026-08-26T10:39:53.043Z",
-    "ip": "::1",
-    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
-    "username": "bernish2004cyber",
-    "status": "success"
-  },
-  {
-    "timestamp": "2026-08-26T10:39:35.197Z",
-    "ip": "::1",
-    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
-    "username": "bernish2004cyber",
-    "status": "failed"
-  },
-  {
     "timestamp": "2026-08-26T02:02:13.555Z",
     "ip": "::1",
     "userAgent": "Unknown Device",
