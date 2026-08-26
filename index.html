@@ -540,7 +540,11 @@
                         <h3 class="card-title">Generate Security Vulnerability Reports</h3>
                         <p class="text-muted">Review, export, and download comprehensive audits compiled across web, application configs, and host compliance vectors.</p>
                         
-                        <div class="report-stats-grid mt-4">
+                        <div class="report-stats-grid mt-4" style="grid-template-columns: repeat(5, 1fr);">
+                            <div class="report-stat-item" style="border: 2px solid rgba(100,255,218,0.3); background: rgba(100,255,218,0.05);">
+                                <span class="num text-accent" id="report-executive-grade" style="font-size: 2.2rem; font-weight: 900;">--</span>
+                                <span class="lbl" id="report-executive-label" style="font-size: 0.75rem; font-weight: 700;">SECURITY GRADE</span>
+                            </div>
                             <div class="report-stat-item">
                                 <span class="num text-accent" id="report-global-score">--</span>
                                 <span class="lbl">Global Posture Score</span>
@@ -560,10 +564,10 @@
                         </div>
 
                         <div class="report-actions-container mt-4">
-                            <button class="btn btn-primary mr-2" id="btn-export-pdf" onclick="window.print()">
-                                <i class="fa-solid fa-file-pdf"></i> Download PDF Report
+                            <button class="btn btn-primary mr-2" id="btn-export-pdf" onclick="ReportGenerator.exportPdf()">
+                                <i class="fa-solid fa-file-pdf"></i> Download Executive PDF Report
                             </button>
-                            <button class="btn btn-secondary mr-2" id="btn-export-json">
+                            <button class="btn btn-secondary mr-2" id="btn-export-json" onclick="ReportGenerator.exportJson()">
                                 <i class="fa-solid fa-download"></i> Export JSON Report
                             </button>
                         </div>
