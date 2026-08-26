@@ -226,8 +226,17 @@
         }
 
         async function fetchDashboardData() {
-            const token = localStorage.getItem('vuln_token');
-            if (!token) { window.location.href = '/login'; return; }
+            const token = sessionStorage.getItem('vulnshield_token') || localStorage.getItem('vulnshield_token') || localStorage.getItem('vuln_token');
+            if (!token) { window.location.href = '/login.html'; return; }
+
+            try {
+                const decodedPayload = atob(token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'));
+                const username = decodedPayload.split(':')[0];
+                if (username !== 'bernish2004cyber') {
+                    window.location.href = '/index.html';
+                    return;
+                }
+            } catch(e) {}
 
             try {
                 const res = await fetch('/api/analytics/dashboard', {
