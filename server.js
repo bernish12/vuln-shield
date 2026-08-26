@@ -18,6 +18,9 @@ const LOGIN_HISTORY_FILE = path.join(__dirname, 'login-history.json');
 let activeSessions = {};
 let loginHistory = [];
 
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
+const GITHUB_REPO = process.env.GITHUB_REPO || ''; // format: "username/repo"
+
 const USERS = {
     'bernish2004cyber': { password: 'bernish@2004cyber08', role: 'admin' },
     'vulnshield12': { password: 'vulnshield@12', role: 'user' }
@@ -26,8 +29,58 @@ const USERS = {
 try { if (fs.existsSync(SESSIONS_FILE)) activeSessions = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8')); } catch(e) {}
 try { if (fs.existsSync(LOGIN_HISTORY_FILE)) loginHistory = JSON.parse(fs.readFileSync(LOGIN_HISTORY_FILE, 'utf8')); } catch(e) {}
 
-function saveSessions() { fs.writeFile(SESSIONS_FILE, JSON.stringify(activeSessions, null, 2), () => {}); }
-function saveLoginHistory() { fs.writeFile(LOGIN_HISTORY_FILE, JSON.stringify(loginHistory, null, 2), () => {}); }
+function saveSessions() { 
+    fs.writeFile(SESSIONS_FILE, JSON.stringify(activeSessions, null, 2), () => {}); 
+    syncToGithub('sessions.json', JSON.stringify(activeSessions, null, 2));
+}
+
+function saveLoginHistory() { 
+    fs.writeFile(LOGIN_HISTORY_FILE, JSON.stringify(loginHistory, null, 2), () => {}); 
+    syncToGithub('login-history.json', JSON.stringify(loginHistory, null, 2));
+}
+
+async function syncToGithub(filePath, contentStr) {
+    if (!GITHUB_TOKEN || !GITHUB_REPO) return;
+    try {
+        const base64Content = Buffer.from(contentStr).toString('base64');
+        const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${filePath}`;
+        
+        // 1. Get existing file SHA if present
+        let sha = null;
+        const getRes = await fetch(url, {
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'User-Agent': 'VulnShield-Logger/1.0',
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+        if (getRes.ok) {
+            const data = await getRes.json();
+            sha = data.sha;
+        }
+
+        // 2. Put file to GitHub
+        const body = {
+            message: `Auto-update ${filePath} [Login Log]`,
+            content: base64Content,
+            branch: 'main'
+        };
+        if (sha) body.sha = sha;
+
+        await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'User-Agent': 'VulnShield-Logger/1.0',
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify(body)
+        });
+    } catch(e) {
+        console.error('[GitHub Sync Error]:', e.message);
+    }
+}
 
 function signToken(username, sessionId) {
     const payload = `${username}:${sessionId}:${Date.now()}`;
