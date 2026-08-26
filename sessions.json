@@ -38,29 +38,5 @@
     "role": "user",
     "loginTime": "2026-08-26T02:02:13.553Z",
     "lastActive": "2026-08-26T02:02:13.569Z"
-  },
-  "61d9a7991f063b0783219a54a4920890": {
-    "ip": "::1",
-    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
-    "username": "vulnshield12",
-    "role": "user",
-    "loginTime": "2026-08-26T10:16:08.871Z",
-    "lastActive": "2026-08-26T10:16:10.584Z"
-  },
-  "a913fed925befd7b82fbc84ba2aa2b05": {
-    "ip": "::1",
-    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
-    "username": "bernish2004cyber",
-    "role": "admin",
-    "loginTime": "2026-08-26T10:23:15.667Z",
-    "lastActive": "2026-08-26T10:23:20.455Z"
-  },
-  "7a4c3c465703a67850db1e118f401500": {
-    "ip": "::1",
-    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
-    "username": "bernish2004cyber",
-    "role": "admin",
-    "loginTime": "2026-08-26T10:24:18.635Z",
-    "lastActive": "2026-08-26T10:29:16.675Z"
   }
 }
