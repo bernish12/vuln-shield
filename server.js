@@ -245,8 +245,34 @@ http.createServer((req, res) => {
             res.end(content);
         }
     });
-}).listen(PORT, () => {
+}).listen(PORT, async () => {
     console.log(`Server running successfully at http://localhost:${PORT}/`);
+    // Pull login history and sessions from GitHub on startup to restore data after Render restarts
+    if (GITHUB_TOKEN && GITHUB_REPO) {
+        try {
+            const histRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/login-history.json`, {
+                headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'User-Agent': 'VulnShield-Logger/1.0', 'Accept': 'application/vnd.github.v3+json' }
+            });
+            if (histRes.ok) {
+                const histData = await histRes.json();
+                const decoded = Buffer.from(histData.content, 'base64').toString('utf8');
+                loginHistory = JSON.parse(decoded);
+                console.log(`[GitHub Restore] Loaded ${loginHistory.length} login history entries from GitHub.`);
+            }
+        } catch(e) { console.error('[GitHub Restore] Login history pull failed:', e.message); }
+
+        try {
+            const sessRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/sessions.json`, {
+                headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'User-Agent': 'VulnShield-Logger/1.0', 'Accept': 'application/vnd.github.v3+json' }
+            });
+            if (sessRes.ok) {
+                const sessData = await sessRes.json();
+                const decoded = Buffer.from(sessData.content, 'base64').toString('utf8');
+                activeSessions = JSON.parse(decoded);
+                console.log(`[GitHub Restore] Loaded ${Object.keys(activeSessions).length} active sessions from GitHub.`);
+            }
+        } catch(e) { console.error('[GitHub Restore] Sessions pull failed:', e.message); }
+    }
 });
 
 // Helper to read JSON request body
