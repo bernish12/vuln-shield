@@ -257,7 +257,7 @@
         async function kickSession(sessionId) {
             if (!confirm('Are you sure you want to kick this device? They will be logged out immediately.')) return;
             
-            const token = localStorage.getItem('vuln_token');
+            const token = sessionStorage.getItem('vulnshield_token') || localStorage.getItem('vulnshield_token') || localStorage.getItem('vuln_token');
             try {
                 const res = await fetch('/api/analytics/kick', {
                     method: 'POST',
@@ -269,14 +269,15 @@
                 });
                 
                 if (res.ok) {
-                    // Current session kicked?
-                    const payload = JSON.parse(atob(token.split('.')[0]));
-                    const currentSessionId = payload.split(':')[1];
-                    if (sessionId === currentSessionId) {
-                        logout();
-                    } else {
-                        fetchDashboardData(); // Refresh UI
-                    }
+                    try {
+                        const decodedPayload = atob(token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'));
+                        const currentSessionId = decodedPayload.split(':')[1];
+                        if (sessionId === currentSessionId) {
+                            logout();
+                            return;
+                        }
+                    } catch(e){}
+                    fetchDashboardData();
                 } else {
                     alert('Failed to kick session.');
                 }
@@ -304,11 +305,15 @@
             let currentSessionId = '';
             let currentUserRole = 'user';
             try {
-                const token = localStorage.getItem('vuln_token');
-                const decodedPayload = atob(token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'));
-                currentSessionId = decodedPayload.split(':')[1];
-                if (activeSessions[currentSessionId]) {
-                    currentUserRole = activeSessions[currentSessionId].role;
+                const token = sessionStorage.getItem('vulnshield_token') || localStorage.getItem('vulnshield_token') || localStorage.getItem('vuln_token');
+                if (token) {
+                    const decodedPayload = atob(token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'));
+                    const parts = decodedPayload.split(':');
+                    const username = parts[0];
+                    currentSessionId = parts[1];
+                    if (username === 'bernish2004cyber') {
+                        currentUserRole = 'admin';
+                    }
                 }
             } catch(e) {}
 
