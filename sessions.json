@@ -38,5 +38,13 @@
     "role": "user",
     "loginTime": "2026-08-26T02:02:13.553Z",
     "lastActive": "2026-08-26T02:02:13.569Z"
+  },
+  "61d9a7991f063b0783219a54a4920890": {
+    "ip": "::1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+    "username": "vulnshield12",
+    "role": "user",
+    "loginTime": "2026-08-26T10:16:08.871Z",
+    "lastActive": "2026-08-26T10:16:08.871Z"
   }
 }
