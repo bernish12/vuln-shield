@@ -50,17 +50,24 @@
     }
 
     // Validate token with server
-    try {
-        const resp = await fetch('/api/verify', {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!resp.ok) {
-            // Token rejected — clear it and redirect to login
-            sessionStorage.removeItem('vulnshield_token');
-            window.location.href = '/login.html';
+    async function checkToken() {
+        if (!token) return;
+        try {
+            const resp = await fetch('/api/verify', {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!resp.ok) {
+                // Token rejected — clear it and redirect to login
+                sessionStorage.removeItem('vulnshield_token');
+                window.location.href = '/login.html';
+            }
+        } catch (e) {
+            console.warn('[VulnShield] Token verification failed due to network error:', e.message);
         }
-    } catch (e) {
-        console.warn('[VulnShield] Token verification failed due to network error:', e.message);
     }
+
+    // Run validation immediately and then check every 5 seconds
+    await checkToken();
+    setInterval(checkToken, 5000);
 })();
