@@ -23,8 +23,25 @@ const app = {
         this.loadThreatIntelFeed();
         this.recalculateGlobalScore();
 
+        // Check Admin role for Visitor Analytics link
+        this.checkAdminRole();
+
         // Run automated checks on load (quick environment status)
         this.runQuickEnvironmentScan();
+    },
+
+    checkAdminRole: function () {
+        try {
+            const token = sessionStorage.getItem('vulnshield_token') || localStorage.getItem('vulnshield_token') || localStorage.getItem('vuln_token');
+            if (token) {
+                const decodedPayload = atob(token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'));
+                const username = decodedPayload.split(':')[0];
+                const analyticsNav = document.getElementById('nav-visitor-analytics');
+                if (analyticsNav && username === 'bernish2004cyber') {
+                    analyticsNav.style.display = 'flex';
+                }
+            }
+        } catch(e) {}
     },
 
     startLiveClock: function () {
