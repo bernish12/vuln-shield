@@ -46,5 +46,13 @@
     "role": "user",
     "loginTime": "2026-08-26T10:16:08.871Z",
     "lastActive": "2026-08-26T10:16:10.584Z"
+  },
+  "a913fed925befd7b82fbc84ba2aa2b05": {
+    "ip": "::1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+    "username": "bernish2004cyber",
+    "role": "admin",
+    "loginTime": "2026-08-26T10:23:15.667Z",
+    "lastActive": "2026-08-26T10:23:16.981Z"
   }
 }
