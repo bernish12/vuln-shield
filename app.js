@@ -52,9 +52,11 @@ const app = {
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {
             item.addEventListener('click', (e) => {
-                e.preventDefault();
                 const targetTab = item.getAttribute('data-tab');
-                this.switchTab(targetTab);
+                if (targetTab) {
+                    e.preventDefault();
+                    this.switchTab(targetTab);
+                }
             });
         });
 
