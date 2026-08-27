@@ -310,13 +310,21 @@ const app = {
                 `;
             }
 
+            let cvssHtml = '';
+            if (f.cvss && f.cvss !== 'N/A') {
+                cvssHtml = `<span class="badge badge-accent" style="margin-right: 8px;">CVSS: ${f.cvss}</span>`;
+            }
+
             item.innerHTML = `
                 <div class="finding-header">
                     <div class="finding-title-box">
                         <i class="fa-solid ${icon} finding-icon"></i>
                         <span class="finding-title">${f.title}</span>
                     </div>
-                    <span class="severity-label ${f.severity === 'warning' ? 'warning' : f.severity}">${f.severity}</span>
+                    <div>
+                        ${cvssHtml}
+                        <span class="severity-label ${f.severity === 'warning' ? 'warning' : f.severity}">${f.severity}</span>
+                    </div>
                 </div>
                 <div class="finding-desc">${f.desc}</div>
                 ${fixToggleBtnHtml}
@@ -912,7 +920,8 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
                     item.className = 'matrix-item';
                     
                     let badgeClass = 'severity-label passed';
-                    if (severity === 'high') badgeClass = 'severity-label high';
+                    if (severity === 'critical') badgeClass = 'severity-label critical';
+                    else if (severity === 'high') badgeClass = 'severity-label high';
                     else if (severity === 'warning') badgeClass = 'severity-label warning';
                     else if (severity === 'info') badgeClass = 'severity-label info';
 
@@ -931,7 +940,7 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
 
                 if (report.webScan) {
                     report.webScan.findings.forEach(f => {
-                        if (f.severity === 'high' || f.severity === 'warning') {
+                        if (f.severity === 'critical' || f.severity === 'high' || f.severity === 'warning') {
                             addLogItem(f.title, f.severity, 'web');
                             issuesLogged++;
                         }
@@ -939,7 +948,7 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
                 }
                 if (report.appScan) {
                     report.appScan.findings.forEach(f => {
-                        if (f.severity === 'high' || f.severity === 'warning') {
+                        if (f.severity === 'critical' || f.severity === 'high' || f.severity === 'warning') {
                             addLogItem(f.title, f.severity, 'code');
                             issuesLogged++;
                         }
@@ -947,7 +956,7 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
                 }
                 if (report.owaspScan) {
                     report.owaspScan.findings.forEach(f => {
-                        if (f.severity === 'high' || f.severity === 'warning') {
+                        if (f.severity === 'critical' || f.severity === 'high' || f.severity === 'warning') {
                             addLogItem(f.title, f.severity, 'owasp');
                             issuesLogged++;
                         }
