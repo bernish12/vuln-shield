@@ -511,10 +511,12 @@ function attachRemediationToFindings(findings) {
         let impact = item.impact || 'Presents security risks if exploited by malicious actors.';
         let summary = item.solution || item.desc || 'Apply security controls to mitigate this risk.';
         let codeFix = item.codeFix || item.code || '';
+        let cvss = 'N/A';
 
         const titleLower = (item.title || '').toLowerCase();
 
         if (titleLower.includes('hsts')) {
+            cvss = '7.4';
             cwe = 'CWE-523: Unencrypted Transport';
             impact = 'Users are vulnerable to SSL-stripping, MitM eavesdropping, and session hijacking on insecure networks.';
             summary = 'Enforce HTTPS and HTTP Strict Transport Security (HSTS) with a high max-age directive.';
@@ -530,6 +532,7 @@ add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; prelo
 # Apache .htaccess:
 Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"`;
         } else if (titleLower.includes('content-security-policy') || titleLower.includes('csp')) {
+            cvss = '5.4';
             cwe = 'CWE-79: Cross-Site Scripting (XSS)';
             impact = 'Elevated risk of XSS attacks. Malicious scripts can steal cookies, compromise user sessions, or deface the site.';
             summary = 'Implement a restrictive Content-Security-Policy (CSP) header specifying trusted asset origins.';
@@ -547,6 +550,7 @@ app.use(helmet.contentSecurityPolicy({
 # NGINX Header Configuration:
 add_header Content-Security-Policy "default-src 'self'; script-src 'self'; object-src 'none';" always;`;
         } else if (titleLower.includes('clickjacking') || titleLower.includes('x-frame-options')) {
+            cvss = '4.3';
             cwe = 'CWE-1021: Improper Restriction of Rendered UI Layers';
             impact = 'Attacker can embed your web pages into an invisible iframe on a malicious site to hijack user clicks.';
             summary = 'Disallow framing or restrict framing to the same origin using X-Frame-Options or CSP frame-ancestors.';
@@ -559,6 +563,7 @@ app.use((req, res, next) => {
 # NGINX Header:
 add_header X-Frame-Options "SAMEORIGIN" always;`;
         } else if (titleLower.includes('spf') || titleLower.includes('dmarc')) {
+            cvss = '4.3';
             cwe = 'CWE-290: Authentication Bypass by Spoofing';
             impact = 'Spammers can craft fraudulent phishing emails appearing to originate directly from your company domain.';
             summary = 'Publish strict SPF and DMARC enforcement records in your DNS management portal.';
@@ -570,6 +575,7 @@ Value: v=spf1 include:_spf.google.com ~all
 Host: _dmarc
 Value: v=DMARC1; p=quarantine; rua=mailto:security-reports@yourdomain.com`;
         } else if (titleLower.includes('cookie') || titleLower.includes('session')) {
+            cvss = '5.3';
             cwe = 'CWE-614: Sensitive Cookie Without Secure Flag';
             impact = 'Cookies without HttpOnly or Secure flags can be read by XSS scripts or intercepted over HTTP connections.';
             summary = 'Enforce HttpOnly, Secure, and SameSite attributes on all session authentication cookies.';
@@ -585,6 +591,7 @@ app.use(session({
     }
 }));`;
         } else if (titleLower.includes('cors') || titleLower.includes('wildcard')) {
+            cvss = '5.3';
             cwe = 'CWE-942: Overly Permissive Cross-Domain Policy';
             impact = 'Any external website can make credentialed API calls and extract private user data from your server.';
             summary = 'Replace Access-Control-Allow-Origin wildcard (*) with an explicit allowlist of trusted origins.';
@@ -602,6 +609,7 @@ app.use(cors({
     credentials: true
 }));`;
         } else if (titleLower.includes('debuggable') || titleLower.includes('backup') || titleLower.includes('cleartext')) {
+            cvss = '5.3';
             cwe = 'CWE-215: Insertion of Sensitive Information Into Debug Code';
             impact = 'Attackers can attach debuggers to runtime processes or dump sandbox database backups via system debug tools.';
             summary = 'Disable debugging, cleartext HTTP, and backup settings in AndroidManifest.xml for production builds.';
@@ -613,6 +621,7 @@ app.use(cors({
     ...
 </application>`;
         } else if (titleLower.includes('secret') || titleLower.includes('password') || titleLower.includes('key') || titleLower.includes('token') || titleLower.includes('aws')) {
+            cvss = '9.8';
             cwe = 'CWE-798: Use of Hard-coded Credentials';
             impact = 'Public repository commits or leaks expose cloud infrastructure, databases, and APIs to compromise.';
             summary = 'Immediately revoke the leaked key and load secret parameters from environment variables.';
@@ -624,7 +633,8 @@ AWS_ACCESS_KEY_ID=AKIA...your_key
 require('dotenv').config();
 const dbPass = process.env.DATABASE_PASSWORD;
 const awsKey = process.env.AWS_ACCESS_KEY_ID;`;
-        } else if (titleLower.includes('dependency') || titleLower.includes('vulnerable package')) {
+        } else if (titleLower.includes('dependency') || titleLower.includes('vulnerable package') || titleLower.includes('outdated')) {
+            cvss = '6.1';
             cwe = 'CWE-1104: Use of Unmaintained / Vulnerable Component';
             impact = 'Known CVE vulnerabilities in third-party libraries allow remote code execution or denial of service.';
             summary = 'Upgrade package dependency versions to patched, secure releases using NPM/Yarn.';
@@ -634,6 +644,7 @@ npm audit fix
 # Or update specific package to latest secure version:
 npm install <package-name>@latest`;
         } else if (titleLower.includes('sql') || titleLower.includes('injection') || titleLower.includes('xss') || titleLower.includes('admin panel')) {
+            cvss = '8.5';
             cwe = 'CWE-89: SQL Injection / CWE-79: Cross-Site Scripting';
             impact = 'Unsanitized input allows database manipulation, authentication bypass, or arbitrary script execution.';
             summary = 'Use parameterized database queries and encode user inputs before rendering in the DOM.';
@@ -642,8 +653,60 @@ const [rows] = await db.execute('SELECT * FROM users WHERE username = ? AND stat
 
 // Safe DOM text assignment (XSS Prevention):
 element.textContent = userInput; // NEVER use innerHTML with raw user input!`;
+        } else if (titleLower.includes('rate limit')) {
+            cvss = '5.3';
+            cwe = 'CWE-778: Insufficient Logging and Monitoring';
+            impact = 'Attackers can brute force credentials or cause Denial of Service without restriction.';
+            summary = 'Implement rate limiting headers (e.g. X-RateLimit-Limit).';
+            codeFix = `// Express.js with express-rate-limit
+const rateLimit = require('express-rate-limit');
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));`;
+        } else if (titleLower.includes('x-content-type-options') || titleLower.includes('nosniff')) {
+            cvss = '4.3';
+            cwe = 'CWE-434: Unrestricted Upload of File with Dangerous Type';
+            impact = 'Browsers may attempt MIME-type sniffing, executing uploaded files as scripts.';
+            summary = 'Set X-Content-Type-Options: nosniff header.';
+            codeFix = `app.use((req, res, next) => { res.setHeader('X-Content-Type-Options', 'nosniff'); next(); });`;
+        } else if (titleLower.includes('referrer-policy') || titleLower.includes('permissions-policy') || titleLower.includes('security reporting')) {
+            cvss = '4.3';
+            cwe = 'CWE-693: Protection Mechanism Failure';
+            impact = 'Information leakage or lack of feature restriction opens small attack vectors.';
+            summary = 'Configure Referrer-Policy and Permissions-Policy headers.';
+            codeFix = `app.use(helmet.referrerPolicy({ policy: 'strict-origin-when-cross-origin' }));`;
+        } else if (titleLower.includes('server version') || titleLower.includes('x-powered-by') || titleLower.includes('stack trace')) {
+            cvss = '5.3';
+            cwe = 'CWE-200: Exposure of Sensitive Information';
+            impact = 'Information leakage helps attackers map out your technology stack for targeted exploits.';
+            summary = 'Remove X-Powered-By and Server headers. Disable stack traces in production.';
+            codeFix = `app.disable('x-powered-by');`;
+        } else if (titleLower.includes('basic auth')) {
+            cvss = '8.1';
+            cwe = 'CWE-319: Cleartext Transmission of Sensitive Information';
+            impact = 'Credentials can be intercepted over unencrypted channels.';
+            summary = 'Never use HTTP Basic Auth without HTTPS.';
+            codeFix = `// Enforce HTTPS first, or use Bearer tokens`;
+        } else if (titleLower.includes('subresource integrity') || titleLower.includes('sri')) {
+            cvss = '4.3';
+            cwe = 'CWE-345: Insufficient Verification of Data Authenticity';
+            impact = 'Compromised CDNs can inject malicious scripts into your site.';
+            summary = 'Add integrity hashes to external script tags.';
+            codeFix = `<script src="https://cdn.com/script.js" integrity="sha384-..." crossorigin="anonymous"></script>`;
         }
 
+        if (cvss !== 'N/A') {
+            const score = parseFloat(cvss);
+            if (score >= 9.0) {
+                item.severity = 'critical';
+            } else if (score >= 7.0) {
+                item.severity = 'high';
+            } else if (score >= 4.0) {
+                item.severity = 'warning';
+            } else {
+                item.severity = 'info';
+            }
+        }
+
+        item.cvss = cvss;
         item.remediation = {
             summary: summary,
             cwe: cwe,
