@@ -1509,6 +1509,21 @@ body.cyber-theme {
     border-bottom: 1px solid var(--border-color);
 }
 
+.severity-label {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.severity-label.critical { background-color: rgba(220, 38, 38, 0.2); color: #f87171; border: 1px solid rgba(220, 38, 38, 0.5); }
+.severity-label.high { background-color: rgba(239, 68, 68, 0.15); color: var(--risk-high); border: 1px solid rgba(239, 68, 68, 0.3); }
+.severity-label.warning { background-color: rgba(245, 158, 11, 0.15); color: var(--risk-medium); border: 1px solid rgba(245, 158, 11, 0.3); }
+.severity-label.passed { background-color: rgba(16, 185, 129, 0.15); color: var(--risk-passed); border: 1px solid rgba(16, 185, 129, 0.3); }
+.severity-label.info { background-color: rgba(99, 102, 241, 0.15); color: var(--risk-low); border: 1px solid rgba(99, 102, 241, 0.3); }
+
 .summary-log-table td {
     padding: 12px;
     font-size: 13px;
