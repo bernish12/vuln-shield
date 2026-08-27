@@ -65,7 +65,7 @@ const ReportGenerator = {
         // Calculate counts
         if (state.webScan && state.webScan.findings) {
             state.webScan.findings.forEach(f => {
-                if (f.severity === 'high') state.summary.high++;
+                if (f.severity === 'high' || f.severity === 'critical') state.summary.high++;
                 else if (f.severity === 'warning') state.summary.medium++;
                 else if (f.severity === 'info') state.summary.low++;
                 else if (f.severity === 'passed') state.summary.passed++;
@@ -74,7 +74,7 @@ const ReportGenerator = {
 
         if (state.appScan && state.appScan.findings) {
             state.appScan.findings.forEach(f => {
-                if (f.severity === 'high') state.summary.high++;
+                if (f.severity === 'high' || f.severity === 'critical') state.summary.high++;
                 else if (f.severity === 'warning') state.summary.medium++;
                 else if (f.severity === 'info') state.summary.low++;
                 else if (f.severity === 'passed') state.summary.passed++;
@@ -96,7 +96,7 @@ const ReportGenerator = {
 
         if (state.owaspScan && state.owaspScan.findings) {
             state.owaspScan.findings.forEach(f => {
-                if (f.severity === 'high') state.summary.high++;
+                if (f.severity === 'high' || f.severity === 'critical') state.summary.high++;
                 else if (f.severity === 'warning') state.summary.medium++;
                 else if (f.severity === 'info') state.summary.low++;
                 else if (f.severity === 'passed') state.summary.passed++;
@@ -106,12 +106,12 @@ const ReportGenerator = {
         // Global Score Algorithm
         const scores = [];
         if (state.webScan && state.webScan.findings) {
-            const bad = state.webScan.findings.filter(f => f.severity === 'high').length * 25 +
+            const bad = state.webScan.findings.filter(f => f.severity === 'high' || f.severity === 'critical').length * 25 +
                         state.webScan.findings.filter(f => f.severity === 'warning').length * 10;
             scores.push(Math.max(100 - bad, 0));
         }
         if (state.appScan && state.appScan.findings) {
-            const bad = state.appScan.findings.filter(f => f.severity === 'high').length * 30 +
+            const bad = state.appScan.findings.filter(f => f.severity === 'high' || f.severity === 'critical').length * 30 +
                         state.appScan.findings.filter(f => f.severity === 'warning').length * 15;
             scores.push(Math.max(100 - bad, 0));
         }
@@ -119,7 +119,7 @@ const ReportGenerator = {
             scores.push(state.deviceAudit.score);
         }
         if (state.owaspScan && state.owaspScan.findings) {
-            const bad = state.owaspScan.findings.filter(f => f.severity === 'high').length * 20 +
+            const bad = state.owaspScan.findings.filter(f => f.severity === 'high' || f.severity === 'critical').length * 20 +
                         state.owaspScan.findings.filter(f => f.severity === 'warning').length * 8;
             scores.push(Math.max(100 - bad, 0));
         }
@@ -264,6 +264,9 @@ const ReportGenerator = {
                 if (data.section === 'body' && data.column.index === 1) {
                     if (data.cell.raw === 'HIGH') {
                         data.cell.styles.textColor = [255, 82, 82];
+                        data.cell.styles.fontStyle = 'bold';
+                    } else if (data.cell.raw === 'CRITICAL') {
+                        data.cell.styles.textColor = [220, 38, 38];
                         data.cell.styles.fontStyle = 'bold';
                     } else if (data.cell.raw === 'WARNING' || data.cell.raw === 'MEDIUM') {
                         data.cell.styles.textColor = [255, 153, 0];
