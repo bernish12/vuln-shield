@@ -323,7 +323,7 @@ const app = {
                     </div>
                     <div>
                         ${cvssHtml}
-                        <span class="severity-label ${f.severity === 'warning' ? 'warning' : f.severity}">${f.severity}</span>
+                        <span class="severity-label ${f.severity === 'warning' ? 'warning' : f.severity}">${f.severity === 'warning' ? 'medium' : f.severity === 'passed' ? 'low' : f.severity}</span>
                     </div>
                 </div>
                 <div class="finding-desc">${f.desc}</div>
