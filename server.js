@@ -165,6 +165,16 @@ function logVisit(req) {
 
 // Start server
 http.createServer((req, res) => {
+    // Apply OWASP recommended security headers
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    res.setHeader('Content-Security-Policy', "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob: wss: ws:;");
+    res.setHeader('X-RateLimit-Limit', '100');
+    res.setHeader('RateLimit-Limit', '100');
+    res.setHeader('Retry-After', '3600');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('X-Frame-Options', 'DENY');
+
     logVisit(req);
     // Check if it is an API request
     if (req.url.startsWith('/api/')) {
