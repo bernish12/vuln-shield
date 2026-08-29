@@ -8,122 +8,23 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <script src="auth.js"></script>
-    <style>
-        .analytics-container {
-            padding: 2rem;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        .data-table-wrapper {
-            background: rgba(10, 10, 14, 0.6);
-            border: 1px solid rgba(100, 255, 218, 0.1);
-            border-radius: 12px;
-            overflow-x: auto;
-            margin-top: 1.5rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            margin-bottom: 2rem;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-        }
-        th, td {
-            padding: 1.2rem;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
-        }
-        th {
-            background: rgba(100, 255, 218, 0.05);
-            color: #64ffda;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        tr:hover {
-            background: rgba(100, 255, 218, 0.03);
-        }
-        .badge-ip {
-            color: #ff5252;
-            background: rgba(255, 82, 82, 0.1);
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-        }
-        .badge-device {
-            color: #a8b2d1;
-        }
-        .badge-url {
-            color: #82aaff;
-        }
-        .badge-success {
-            color: #64ffda;
-            background: rgba(100, 255, 218, 0.1);
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
-        }
-        .badge-failed {
-            color: #ff5252;
-            background: rgba(255, 82, 82, 0.1);
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
-        }
-        .header-actions-flex {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-        .btn-kick {
-            background: rgba(255, 82, 82, 0.15);
-            border: 1px solid rgba(255, 82, 82, 0.3);
-            color: #ff5252;
-            cursor: pointer;
-            padding: 0.4rem 0.8rem;
-            border-radius: 6px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        .btn-kick:hover {
-            background: #ff5252;
-            color: white;
-        }
-        .section-title {
-            margin-top: 3rem;
-            color: #fff;
-            font-size: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .section-title i {
-            color: #64ffda;
-        }
-    </style>
+    <link rel="stylesheet" href="analytics.css">
 </head>
-<body class="cyber-theme" style="overflow-y: auto; height: auto; min-height: 100vh;">
+<body class="cyber-theme">
     <div class="cyber-grid"></div>
     <div class="glow-orb orb-1"></div>
     
     <div class="analytics-container">
         <div class="header-actions-flex">
             <div>
-                <h1 id="page-title" style="margin-bottom: 0.5rem;">Security Dashboard</h1>
+                <h1 id="page-title">Security Dashboard</h1>
                 <p class="text-muted">Advanced Session & Access Analytics</p>
             </div>
             <div>
-                <a href="index.html" class="btn btn-outline" style="margin-right: 1rem;">
+                <a href="index.html" class="btn btn-outline">
                     <i class="fa-solid fa-arrow-left"></i> Back to Main App
                 </a>
-                <button class="btn" onclick="logout()" style="background: rgba(255, 82, 82, 0.15); border: 1px solid rgba(255, 82, 82, 0.3); color: #ff5252;">
+                <button class="btn" onclick="logout()">
                     <i class="fa-solid fa-right-from-bracket"></i> Logout
                 </button>
             </div>
@@ -132,20 +33,20 @@
         <!-- Stats Bar -->
         <div class="stats-grid">
             <div class="card card-glow border-accent-glow">
-                <p class="text-muted" style="margin:0; font-size:0.9rem; text-transform:uppercase; letter-spacing:1px;">Active Devices</p>
-                <h1 style="font-size: 2.5rem; margin:0.5rem 0 0 0; color: #64ffda;" id="stat-active">0</h1>
+                <p class="text-muted">Active Devices</p>
+                <h1 id="stat-active">0</h1>
             </div>
             <div class="card card-glow border-accent-glow">
-                <p class="text-muted" style="margin:0; font-size:0.9rem; text-transform:uppercase; letter-spacing:1px;">Total Visits</p>
-                <h1 style="font-size: 2.5rem; margin:0.5rem 0 0 0; color: #82aaff;" id="stat-visits">0</h1>
+                <p class="text-muted">Total Visits</p>
+                <h1 id="stat-visits">0</h1>
             </div>
             <div class="card card-glow border-accent-glow">
-                <p class="text-muted" style="margin:0; font-size:0.9rem; text-transform:uppercase; letter-spacing:1px;">Failed Logins</p>
-                <h1 style="font-size: 2.5rem; margin:0.5rem 0 0 0; color: #ff5252;" id="stat-failed">0</h1>
+                <p class="text-muted">Failed Logins</p>
+                <h1 id="stat-failed">0</h1>
             </div>
             <div class="card card-glow border-accent-glow">
-                <p class="text-muted" style="margin:0; font-size:0.9rem; text-transform:uppercase; letter-spacing:1px;">Unique IPs</p>
-                <h1 style="font-size: 2.5rem; margin:0.5rem 0 0 0; color: #ffd700;" id="stat-ips">0</h1>
+                <p class="text-muted">Unique IPs</p>
+                <h1 id="stat-ips">0</h1>
             </div>
         </div>
 
@@ -163,7 +64,7 @@
                     </tr>
                 </thead>
                 <tbody id="sessions-tbody">
-                    <tr><td colspan="5" style="text-align: center;">Loading sessions...</td></tr>
+                    <tr><td colspan="5">Loading sessions...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -182,7 +83,7 @@
                     </tr>
                 </thead>
                 <tbody id="login-tbody">
-                    <tr><td colspan="5" style="text-align: center;">Loading login history...</td></tr>
+                    <tr><td colspan="5">Loading login history...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -200,7 +101,7 @@
                     </tr>
                 </thead>
                 <tbody id="logs-tbody">
-                    <tr><td colspan="4" style="text-align: center;">Loading traffic...</td></tr>
+                    <tr><td colspan="4">Loading traffic...</td></tr>
                 </tbody>
             </table>
         </div>
