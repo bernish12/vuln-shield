@@ -167,7 +167,7 @@ function logVisit(req) {
 http.createServer((req, res) => {
     // Apply OWASP recommended security headers
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-    res.setHeader('Content-Security-Policy', "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob: wss: ws:;");
+    res.setHeader('Content-Security-Policy', "default-src 'self' https: data: blob: wss: ws:;");
     res.setHeader('X-RateLimit-Limit', '100');
     res.setHeader('RateLimit-Limit', '100');
     res.setHeader('Retry-After', '3600');
