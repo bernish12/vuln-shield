@@ -8,5 +8,9 @@
   },
   "engines": {
     "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "markdown-it": "^15.0.1",
+    "pdfkit": "^0.20.1"
   }
 }
