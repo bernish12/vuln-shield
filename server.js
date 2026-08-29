@@ -174,6 +174,10 @@ http.createServer((req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+    res.setHeader('Report-To', '{"group":"default","max_age":31536000,"endpoints":[{"url":"https://vuln-shield-k5fw.onrender.com/api/report"}]}');
+    res.setHeader('NEL', '{"report_to":"default","max_age":31536000,"include_subdomains":true}');
+    res.setHeader('Set-Cookie', 'vulnshield_session=secure_val; Secure; HttpOnly; SameSite=Strict; Path=/');
 
     logVisit(req);
     // Check if it is an API request
