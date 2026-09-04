@@ -44,11 +44,13 @@ h1, h2, h3, h4, h5, h6, .logo-main, .card-title, #page-title, .stat-label {
 
 /* Background Hacker Text */
 .bg-terminal-left, .bg-terminal-right {
-    opacity: 0.4 !important;
+    opacity: 0.15 !important;
     color: var(--accent) !important;
     text-shadow: 0 0 5px var(--accent);
     font-family: var(--font-mono-hacker) !important;
-    font-size: 0.85rem !important;
+    font-size: 0.75rem !important;
+    z-index: -5 !important;
+    pointer-events: none !important;
 }
 
 /* Sidebar & Glassmorphism */
@@ -63,6 +65,10 @@ h1, h2, h3, h4, h5, h6, .logo-main, .card-title, #page-title, .stat-label {
     text-shadow: 0 0 10px var(--accent);
     background: none !important;
     -webkit-text-fill-color: var(--accent) !important;
+    font-size: 1.1rem !important;
+    white-space: normal;
+    word-break: break-all;
+    line-height: 1.2;
 }
 
 .logo-text .text-accent {
@@ -105,6 +111,8 @@ h1, h2, h3, h4, h5, h6, .logo-main, .card-title, #page-title, .stat-label {
     text-shadow: 0 0 12px var(--accent-blue);
     background: none !important;
     -webkit-text-fill-color: var(--accent-blue) !important;
+    font-size: 1.3rem !important;
+    margin-left: 20px !important;
 }
 
 /* Buttons */
