@@ -31,10 +31,53 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Main Style Sheet -->
     <link rel="stylesheet" href="style.css">
+    <!-- Modern Theme Override -->
+    <link rel="stylesheet" href="dashboard-theme.css">
     <!-- Auth Guard -->
     <script src="auth.js"></script>
 </head>
 <body class="cyber-theme">
+    <!-- Left Background Terminal -->
+    <div class="bg-terminal-left">
+        Testing auth & session handling<br>
+        ! SQLi payload flagged on /search<br>
+        Testing for XSS in form inputs<br>
+        ✓ Input sanitization OK<br>
+        Scanning dependencies for CVEs<br>
+        ! CVE-2024-31337 in lodash@4.17.19<br>
+        Checking CORS policy...<br>
+        ✓ CORS scoped correctly<br>
+        Generating prioritized report<br>
+        3 findings • 1 critical<br>
+        <br>
+        $ vulnshields scan --target prod<br>
+        Resolving target... 203.0.113.42<br>
+        Probing open ports 22,80,443<br>
+        ✓ TLS 1.3 negotiated
+    </div>
+
+    <!-- Right Background Terminal -->
+    <div class="bg-terminal-right">
+        Testing auth & session handling<br>
+        ! SQLi payload flagged on /search<br>
+        Testing for XSS in form inputs<br>
+        Fuzzing /api/v1/* endpoints<br>
+        X CSP header missing<br>
+        Checking security headers...<br>
+        ✓ TLS 1.3 negotiated<br>
+        Probing open ports 22,80,443<br>
+        Resolving target... 203.0.113.42<br>
+        $ vulnshields scan --target prod<br>
+        <br>
+        Generating prioritized report<br>
+        ✓ CORS scoped correctly<br>
+        Checking CORS policy...<br>
+        ! CVE-2024-31337 in lodash@4.17.19
+    </div>
+
+    <!-- Glowing Dots -->
+    <div class="glow-dot dot-green"></div>
+    <div class="glow-dot dot-red"></div>
     <!-- Cyber Grid Background -->
     <div class="cyber-grid"></div>
     <div class="glow-orb orb-1"></div>
