@@ -5,6 +5,14 @@ const dns = require('dns').promises;
 const https = require('https');
 const crypto = require('crypto');
 
+// ── Global crash prevention — server must NEVER go down ──────────────────────
+process.on('uncaughtException', (err) => {
+    console.error('[CRITICAL] Uncaught Exception:', err.message, err.stack);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('[CRITICAL] Unhandled Promise Rejection:', reason);
+});
+
 const PORT = process.env.PORT || 8000;
 
 // ── HMAC-signed token helpers ──────────────────────────────────────────────
@@ -243,8 +251,17 @@ http.createServer((req, res) => {
     fs.readFile(filePath, (error, content) => {
         if (error) {
             if (error.code === 'ENOENT') {
-                res.writeHead(404, { 'Content-Type': 'text/plain' });
-                res.end('File Not Found');
+                // Serve custom 404 page
+                const notFoundPage = path.resolve(__dirname, '404.html');
+                fs.readFile(notFoundPage, (err404, content404) => {
+                    if (err404) {
+                        res.writeHead(404, { 'Content-Type': 'text/plain' });
+                        res.end('404 Not Found');
+                    } else {
+                        res.writeHead(404, { 'Content-Type': 'text/html' });
+                        res.end(content404);
+                    }
+                });
             } else {
                 res.writeHead(500, { 'Content-Type': 'text/plain' });
                 res.end(`Internal Server Error: ${error.code}`);
