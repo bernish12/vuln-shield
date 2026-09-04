@@ -3,28 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BernishVuln_Shield – Login</title>
+    <title>VulnShields – Secure Login</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-    <script src="auth.js"></script>
     <link rel="stylesheet" href="login.css">
+    <script src="auth.js"></script>
 </head>
-<body>
-    <div class="login-card">
-        <h2>BernishVuln_Shield Login</h2>
-        <form id="loginForm">
-            <input type="text" id="username" placeholder="Username" autocomplete="username" required />
-            <div class="pwd-container">
-                <input type="password" id="password" placeholder="Password" autocomplete="current-password" required />
-                <i class="fa-regular fa-eye" id="togglePassword"></i>
-            </div>
-            <button type="submit" id="loginBtn">Login</button>
-        </form>
-        <div class="error" id="errorMsg"></div>
+<body class="cyber-theme">
+    
+    <!-- Left Background Terminal -->
+    <div class="bg-terminal-left">
+        Testing auth & session handling<br>
+        ! SQLi payload flagged on /search<br>
+        Testing for XSS in form inputs<br>
+        ✓ Input sanitization OK<br>
+        Scanning dependencies for CVEs<br>
+        ! CVE-2024-31337 in lodash@4.17.19<br>
+        Checking CORS policy...<br>
+        ✓ CORS scoped correctly<br>
+        Generating prioritized report<br>
+        3 findings • 1 critical<br>
+        <br>
+        $ vulnshields scan --target prod<br>
+        Resolving target... 203.0.113.42<br>
+        Probing open ports 22,80,443<br>
+        ✓ TLS 1.3 negotiated
     </div>
+
+    <!-- Right Background Terminal -->
+    <div class="bg-terminal-right">
+        Testing auth & session handling<br>
+        ! SQLi payload flagged on /search<br>
+        Testing for XSS in form inputs<br>
+        Fuzzing /api/v1/* endpoints<br>
+        X CSP header missing<br>
+        Checking security headers...<br>
+        ✓ TLS 1.3 negotiated<br>
+        Probing open ports 22,80,443<br>
+        Resolving target... 203.0.113.42<br>
+        $ vulnshields scan --target prod<br>
+        <br>
+        Generating prioritized report<br>
+        ✓ CORS scoped correctly<br>
+        Checking CORS policy...<br>
+        ! CVE-2024-31337 in lodash@4.17.19
+    </div>
+
+    <!-- Glowing Dots -->
+    <div class="glow-dot dot-green"></div>
+    <div class="glow-dot dot-green-2"></div>
+    <div class="glow-dot dot-red"></div>
+    <div class="glow-dot dot-red-2"></div>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            
+            <div class="ai-pill">
+                <div class="dot"></div>
+                SECURE AUTHENTICATION GATEWAY
+            </div>
+            
+            <h2>
+                Professional <span class="text-gradient">Security</span><br>
+                With Reliable Access
+            </h2>
+            
+            <p class="subtitle">
+                Log in to access your dashboard. We pentest, harden, and monitor your digital assets — robust protection across web, mobile, API and cloud.
+            </p>
+            
+            <form id="loginForm">
+                <div class="input-group">
+                    <input type="text" id="username" placeholder="Username" autocomplete="username" required />
+                </div>
+                
+                <div class="input-group pwd-container">
+                    <input type="password" id="password" placeholder="Password" autocomplete="current-password" required />
+                    <i class="fa-regular fa-eye toggle-pwd" id="togglePassword"></i>
+                </div>
+                
+                <button type="submit" id="loginBtn" class="cyber-btn">
+                    Authenticate Session <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+            <div class="error-msg" id="errorMsg"></div>
+            
+            <div class="trust-badges">
+                <span><i class="fa-regular fa-circle-check"></i> 2FA-ready</span>
+                <span><i class="fa-regular fa-circle-check"></i> Encrypted</span>
+                <span><i class="fa-regular fa-circle-check"></i> Active monitoring</span>
+            </div>
+        </div>
+    </div>
+    
     <script src="login.js"></script>
 </body>
 </html>
