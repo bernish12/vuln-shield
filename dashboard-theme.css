@@ -1,181 +1,202 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
+
 /* 
-  VulnShields.net Modern Aesthetic Override
-  This stylesheet applies the professional, attractive theme to the dashboard.
+  VulnShields.net Super UI Hacker Theme Override
 */
 
 :root {
-    --bg-primary: #0b0c10;
-    --bg-secondary: rgba(17, 24, 39, 0.4);
-    --bg-tertiary: rgba(0, 0, 0, 0.5);
-    --border-color: rgba(255, 255, 255, 0.08);
-    --border-glow: rgba(59, 130, 246, 0.2);
+    --bg-primary: #030a05;
+    --bg-secondary: rgba(0, 20, 10, 0.6);
+    --bg-tertiary: rgba(0, 30, 15, 0.7);
+    --border-color: rgba(0, 255, 102, 0.3);
+    --border-glow: rgba(0, 255, 102, 0.5);
     
-    --text-main: #ffffff;
-    --text-muted: #9ca3af;
+    --text-main: #e0ffe8;
+    --text-muted: #6b997a;
     
-    --accent: #10b981; 
-    --accent-blue: #3b82f6; 
-    --accent-purple: #8b5cf6; 
+    --accent: #00ff66; /* Matrix Green */
+    --accent-blue: #00ffff; /* Cyan */
+    --accent-purple: #ff00ff; /* Magenta */
     
-    --grad-start: #10b981;
-    --grad-mid: #3b82f6;
-    --grad-end: #8b5cf6;
+    --grad-start: #00ff66;
+    --grad-mid: #00ffff;
+    --grad-end: #ff00ff;
+    
+    --font-hacker: 'Orbitron', sans-serif;
+    --font-mono-hacker: 'Share Tech Mono', monospace;
 }
 
 body.cyber-theme {
-    background-color: var(--bg-primary);
-    background-image: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.05), transparent 50%),
-                      radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.05), transparent 50%);
+    background-color: var(--bg-primary) !important;
+    background-image: 
+        linear-gradient(rgba(0, 255, 102, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 102, 0.05) 1px, transparent 1px) !important;
+    background-size: 30px 30px !important;
+    font-family: var(--font-mono-hacker) !important;
+}
+
+/* Hacker Fonts for everything */
+h1, h2, h3, h4, h5, h6, .logo-main, .card-title, #page-title, .stat-label {
+    font-family: var(--font-hacker) !important;
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
 /* Background Hacker Text */
 .bg-terminal-left, .bg-terminal-right {
-    position: absolute;
-    top: 10%;
-    bottom: 0;
-    width: 300px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
-    line-height: 2;
-    opacity: 0.1;
-    z-index: 0;
-    user-select: none;
-    pointer-events: none;
+    opacity: 0.4 !important;
+    color: var(--accent) !important;
+    text-shadow: 0 0 5px var(--accent);
+    font-family: var(--font-mono-hacker) !important;
+    font-size: 0.85rem !important;
 }
 
-.bg-terminal-left {
-    left: 2%;
-    color: #10b981;
-    text-align: left;
-    mask-image: linear-gradient(to right, black 20%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to right, black 20%, transparent 100%);
-}
-
-.bg-terminal-right {
-    right: 2%;
-    color: #ef4444;
-    text-align: right;
-    mask-image: linear-gradient(to left, black 20%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to left, black 20%, transparent 100%);
-}
-
-/* Glowing Dots */
-.glow-dot {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    z-index: 1;
-    pointer-events: none;
-}
-
-.dot-green { background-color: #10b981; box-shadow: 0 0 20px 10px rgba(16, 185, 129, 0.2); top: 30%; left: 15%; }
-.dot-red { background-color: #ef4444; box-shadow: 0 0 20px 10px rgba(239, 68, 68, 0.2); bottom: 15%; right: 22%; }
-
-/* Sidebar */
+/* Sidebar & Glassmorphism */
 .sidebar {
-    background: rgba(10, 10, 15, 0.85);
-    backdrop-filter: blur(20px);
-    border-right: 1px solid var(--border-color);
+    background: rgba(0, 15, 5, 0.95) !important;
+    border-right: 1px solid var(--accent) !important;
+    box-shadow: 5px 0 20px rgba(0, 255, 102, 0.1) !important;
 }
 
 .logo-text .logo-main {
-    background: linear-gradient(to right, var(--text-main), var(--text-main));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--accent) !important;
+    text-shadow: 0 0 10px var(--accent);
+    background: none !important;
+    -webkit-text-fill-color: var(--accent) !important;
 }
+
 .logo-text .text-accent {
-    background: linear-gradient(to right, var(--grad-start), var(--grad-mid));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--accent-blue) !important;
+    text-shadow: 0 0 10px var(--accent-blue);
+    background: none !important;
+    -webkit-text-fill-color: var(--accent-blue) !important;
+}
+
+.nav-item {
+    font-family: var(--font-hacker) !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .nav-item.active {
-    background: linear-gradient(to right, rgba(16, 185, 129, 0.1), rgba(59, 130, 246, 0.1));
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    color: #fff;
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.05);
+    background: rgba(0, 255, 102, 0.15) !important;
+    border: none !important;
+    border-left: 4px solid var(--accent) !important;
+    border-radius: 0 !important;
+    color: var(--accent) !important;
+    text-shadow: 0 0 8px var(--accent);
+    box-shadow: inset 15px 0 20px rgba(0, 255, 102, 0.1) !important;
+}
+
+.nav-item:hover {
+    background: rgba(0, 255, 102, 0.08) !important;
+    color: var(--accent) !important;
 }
 
 /* Header */
 .content-header {
-    background: rgba(10, 10, 15, 0.6);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border-color);
+    background: rgba(0, 15, 5, 0.9) !important;
+    border-bottom: 1px solid var(--accent) !important;
+    box-shadow: 0 5px 20px rgba(0, 255, 102, 0.1) !important;
 }
 
 #page-title {
-    background: linear-gradient(to right, var(--text-main), var(--text-muted));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-weight: 800;
+    color: var(--accent-blue) !important;
+    text-shadow: 0 0 12px var(--accent-blue);
+    background: none !important;
+    -webkit-text-fill-color: var(--accent-blue) !important;
 }
 
 /* Buttons */
 .btn-primary {
-    background: linear-gradient(to right, var(--grad-start), var(--grad-mid), var(--grad-end));
-    border: none;
-    color: #fff;
-    border-radius: 30px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    background: transparent !important;
+    border: 1px solid var(--accent) !important;
+    color: var(--accent) !important;
+    font-family: var(--font-hacker) !important;
+    text-transform: uppercase;
+    box-shadow: 0 0 15px rgba(0, 255, 102, 0.2), inset 0 0 10px rgba(0, 255, 102, 0.1) !important;
+    border-radius: 0 !important; /* Square sharp edges for hacker feel */
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.5);
-    background: linear-gradient(to right, var(--grad-start), var(--grad-mid), var(--grad-end));
+    background: var(--accent) !important;
+    color: #000 !important;
+    box-shadow: 0 0 25px rgba(0, 255, 102, 0.8), inset 0 0 20px rgba(0, 255, 102, 0.5) !important;
 }
 
-/* Cards (Glassmorphism) */
+/* Cards (Glassmorphism & Hacker Style) */
 .card, .stat-card, .scan-module-card, .intel-card {
-    background: var(--bg-secondary);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--border-color);
-    border-radius: 24px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 0 !important;
+    box-shadow: 0 0 20px rgba(0, 255, 102, 0.05) !important;
+    position: relative;
+}
+
+.card::before, .stat-card::before, .scan-module-card::before, .intel-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
 }
 
 .card:hover, .stat-card:hover, .scan-module-card:hover, .intel-card:hover {
-    border-color: rgba(16, 185, 129, 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(16, 185, 129, 0.05);
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 25px rgba(0, 255, 102, 0.2), inset 0 0 15px rgba(0, 255, 102, 0.1) !important;
 }
 
 .card-title {
-    font-size: 1.2rem;
-    font-weight: 700;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 15px;
-    margin-bottom: 20px;
+    color: var(--text-main) !important;
+    border-bottom: 1px dashed var(--accent) !important;
+    padding-bottom: 10px !important;
 }
 
 /* Input Fields */
 input[type="text"], input[type="url"], input[type="number"], select, textarea {
-    background: var(--bg-tertiary) !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: 12px !important;
-    color: var(--text-main) !important;
-    transition: all 0.3s !important;
+    background: rgba(0,20,10,0.8) !important;
+    border: 1px solid var(--accent) !important;
+    border-radius: 0 !important;
+    color: var(--accent) !important;
+    font-family: var(--font-mono-hacker) !important;
+    text-shadow: 0 0 5px var(--accent);
 }
 
 input[type="text"]:focus, input[type="url"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
-    border-color: var(--accent-blue) !important;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+    box-shadow: 0 0 20px rgba(0, 255, 102, 0.4), inset 0 0 10px rgba(0, 255, 102, 0.2) !important;
+    outline: none !important;
 }
 
-/* Specific fix for gauge and charts */
-.gauge-val {
-    background: linear-gradient(to right, var(--grad-start), var(--grad-mid));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+/* Stats and logs */
+.stat-value {
+    color: var(--accent) !important;
+    text-shadow: 0 0 20px var(--accent);
+    font-family: var(--font-hacker) !important;
 }
 
 .posture-stat-box {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 16px;
-    border: 1px solid var(--border-color);
+    background: rgba(0, 20, 10, 0.5) !important;
+    border: 1px solid rgba(0, 255, 102, 0.3) !important;
+    border-radius: 0 !important;
+}
+
+.posture-stat-box .stat-val {
+    font-family: var(--font-hacker) !important;
+    text-shadow: 0 0 12px currentColor;
+}
+
+.risk-log-list .log-item {
+    font-family: var(--font-mono-hacker) !important;
+    border-bottom: 1px dashed rgba(0, 255, 102, 0.3) !important;
+    color: var(--text-main);
+}
+
+.risk-log-list .log-item:hover {
+    background: rgba(0, 255, 102, 0.1);
+}
+
+/* Fixes for specific spans */
+.text-accent, .text-highlight {
+    color: var(--accent-blue) !important;
+    text-shadow: 0 0 8px var(--accent-blue);
 }
