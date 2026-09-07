@@ -197,6 +197,12 @@ const ReportGenerator = {
         let targetStr = "Target: N/A";
         if (report.webScan && report.webScan.domain) {
             targetStr = `Target Domain / IP: ${report.webScan.domain}`;
+        } else if (report.appScan && report.appScan.filename) {
+            targetStr = `Target File: ${report.appScan.filename}`;
+        } else if (report.owaspScan && report.owaspScan.url) {
+            targetStr = `Target URL: ${report.owaspScan.url}`;
+        } else if (report.deviceAudit && report.deviceAudit.os) {
+            targetStr = `Target OS: ${report.deviceAudit.os.toUpperCase()} System`;
         }
         doc.setFont("helvetica", "bold");
         doc.setTextColor(0, 0, 0);
