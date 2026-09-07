@@ -47,12 +47,13 @@ const ReportGenerator = {
 
     // Generate full summary data structure
     compileReport: function () {
+        const latestScan = localStorage.getItem('vulnshield_latest_scan');
         const state = {
             timestamp: new Date().toISOString(),
-            webScan: this.getSavedWebScan(),
-            appScan: this.getSavedAppScan(),
-            owaspScan: this.getSavedOwaspScan(),
-            deviceAudit: this.getSavedDeviceAudit(),
+            webScan: latestScan === 'web' ? this.getSavedWebScan() : null,
+            appScan: latestScan === 'app' ? this.getSavedAppScan() : null,
+            owaspScan: latestScan === 'owasp' ? this.getSavedOwaspScan() : null,
+            deviceAudit: latestScan === 'device' ? this.getSavedDeviceAudit() : null,
             summary: {
                 high: 0,
                 medium: 0,
