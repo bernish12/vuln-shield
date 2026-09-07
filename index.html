@@ -234,7 +234,7 @@
                                 </div>
                                 <div class="posture-stat-box">
                                     <span class="box-number text-green" id="stat-passed">0</span>
-                                    <span class="box-number text-green" id="stat-passed">0</span>
+                                    <span class="box-label">Passed</span>
                                 </div>
                             </div>
                             <div class="threat-matrix-box">
@@ -617,6 +617,22 @@
                     </div>
 
                     <div class="card mt-4">
+                        <h4 class="card-title">Vulnerability Distribution</h4>
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 40px; padding: 20px;">
+                            <div style="width: 250px; height: 250px; position: relative;">
+                                <canvas id="vuln-pie-chart"></canvas>
+                                <div id="pie-chart-empty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#6b7280;font-size:0.8rem;">Run a scan to<br>see chart</div>
+                            </div>
+                            <div id="pie-chart-legend" style="display:flex;flex-direction:column;gap:12px;min-width:160px;">
+                                <div style="display:flex;align-items:center;gap:10px;"><span style="width:14px;height:14px;border-radius:50%;background:#ef4444;display:inline-block;"></span><span style="color:#9ca3af;font-size:0.9rem;">High: <strong id="leg-high" style="color:#fff;">0</strong></span></div>
+                                <div style="display:flex;align-items:center;gap:10px;"><span style="width:14px;height:14px;border-radius:50%;background:#f59e0b;display:inline-block;"></span><span style="color:#9ca3af;font-size:0.9rem;">Medium: <strong id="leg-med" style="color:#fff;">0</strong></span></div>
+                                <div style="display:flex;align-items:center;gap:10px;"><span style="width:14px;height:14px;border-radius:50%;background:#6366f1;display:inline-block;"></span><span style="color:#9ca3af;font-size:0.9rem;">Low/Info: <strong id="leg-low" style="color:#fff;">0</strong></span></div>
+                                <div style="display:flex;align-items:center;gap:10px;"><span style="width:14px;height:14px;border-radius:50%;background:#10b981;display:inline-block;"></span><span style="color:#9ca3af;font-size:0.9rem;">Passed: <strong id="leg-passed" style="color:#fff;">0</strong></span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4">
                         <h4 class="card-title">Executive Summary Log</h4>
                         <div class="executive-summary-log mt-3" id="executive-summary-log">
                             <div class="empty-state">No vulnerability scans have been committed yet. Fill out individual assessment blocks to build reports.</div>
@@ -637,6 +653,8 @@
         </div>
     </div>
 
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous"></script>
     <!-- jsPDF Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" integrity="sha384-fCAW/rDWORTbQXSiB7mOg0QtQ5c+r0f544y6XoKjuVva0nMBlCpNUjiFeG5iMdS3" crossorigin="anonymous"></script>
