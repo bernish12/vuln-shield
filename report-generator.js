@@ -431,7 +431,7 @@ const ReportGenerator = {
                 html += `
                     <tr>
                         <td style="font-weight: 600;">${f.title}</td>
-                        <td><span class="severity-label ${f.severity === 'warning' ? 'warning' : f.severity}">${f.severity}</span></td>
+                        <td><span class="severity-label ${f.severity === 'warning' ? 'warning' : f.severity}">${f.severity === 'warning' ? 'medium' : f.severity}</span></td>
                         <td class="text-muted small">${this.getRemediation(f.title, f.severity)}</td>
                     </tr>
                 `;
@@ -458,7 +458,7 @@ const ReportGenerator = {
                 html += `
                     <tr>
                         <td style="font-weight: 600;">${f.title}</td>
-                        <td><span class="severity-label ${f.severity === 'warning' ? 'warning' : f.severity}">${f.severity}</span></td>
+                        <td><span class="severity-label ${f.severity === 'warning' ? 'warning' : f.severity}">${f.severity === 'warning' ? 'medium' : f.severity}</span></td>
                         <td class="text-muted small">${this.getRemediation(f.title, f.severity)}</td>
                     </tr>
                 `;
@@ -485,7 +485,7 @@ const ReportGenerator = {
                 html += `
                     <tr>
                         <td style="font-weight: 600;">[${f.category}] ${f.title}</td>
-                        <td><span class="severity-label ${f.severity === 'warning' ? 'warning' : f.severity}">${f.severity}</span></td>
+                        <td><span class="severity-label ${f.severity === 'warning' ? 'warning' : f.severity}">${f.severity === 'warning' ? 'medium' : f.severity}</span></td>
                         <td class="text-muted small">${this.getRemediation(f.title, f.severity)}</td>
                     </tr>
                 `;
