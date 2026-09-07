@@ -871,8 +871,9 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
             scoreApp.className = report.appScan ? 'text-green font-bold' : 'text-muted';
         }
         if (scoreDevice) {
-            scoreDevice.innerText = `${report.deviceAudit.score}%`;
-            scoreDevice.className = report.deviceAudit.score >= 80 ? 'text-green' : (report.deviceAudit.score >= 50 ? 'text-yellow' : 'text-red');
+            const devScore = report.deviceAudit ? report.deviceAudit.score : 0;
+            scoreDevice.innerText = report.deviceAudit ? `${devScore}%` : 'N/A';
+            scoreDevice.className = report.deviceAudit ? (devScore >= 80 ? 'text-green' : (devScore >= 50 ? 'text-yellow' : 'text-red')) : 'text-muted font-normal';
         }
         if (scoreOwasp) {
             scoreOwasp.innerText = report.owaspScan ? 'AUDITED' : 'N/A';
