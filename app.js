@@ -234,6 +234,7 @@ const app = {
                 webStatus.className = 'status-badge completed';
                 webStatusText.innerText = `Audit completed. Checked DNS records, subdomains, open ports, and HTTP header profiles.`;
                 this.showToast('Domain Scan Complete', `Audited parameters for ${cleanDomain}`);
+                localStorage.setItem('vulnshield_latest_scan', 'web');
                 this.recalculateGlobalScore();
 
             } catch (err) {
@@ -579,6 +580,7 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
 
                     this.renderFindings(appFindings, findings);
                     this.showToast('Static Audit Complete', `Audited ${filename} configuration.`);
+                    localStorage.setItem('vulnshield_latest_scan', 'app');
                     this.recalculateGlobalScore();
                     
                     // Scroll down to findings
@@ -696,6 +698,7 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
                 owaspStatus.className = 'status-badge completed';
                 owaspStatusText.innerText = `Audit completed. Analyzed HTTP security headers, cookies, and source structures.`;
                 this.showToast('OWASP Scan Complete', `Audited patterns for ${cleanUrl}`);
+                localStorage.setItem('vulnshield_latest_scan', 'owasp');
                 this.recalculateGlobalScore();
 
             } catch (err) {
