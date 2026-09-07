@@ -267,7 +267,7 @@ const ReportGenerator = {
             headStyles: { fillColor: [16, 185, 129] },
             styles: { fontSize: 9, cellPadding: 3 },
             columnStyles: {
-                0: { cellWidth: 40 },
+                0: { cellWidth: 38 },
                 1: { cellWidth: 20 },
                 2: { cellWidth: 60 },
                 3: { cellWidth: 60 }
@@ -344,6 +344,61 @@ const ReportGenerator = {
         highCountVal.innerText = report.summary.high;
         medCountVal.innerText = report.summary.medium;
         passedCountVal.innerText = report.summary.passed;
+
+        // --- PIE CHART: Vulnerability Distribution ---
+        const high = report.summary.high;
+        const medium = report.summary.medium;
+        const low = report.summary.low;
+        const passed = report.summary.passed;
+        const total = high + medium + low + passed;
+
+        // Update legend numbers
+        const legHigh = document.getElementById('leg-high');
+        const legMed = document.getElementById('leg-med');
+        const legLow = document.getElementById('leg-low');
+        const legPassed = document.getElementById('leg-passed');
+        if (legHigh) legHigh.innerText = high;
+        if (legMed) legMed.innerText = medium;
+        if (legLow) legLow.innerText = low;
+        if (legPassed) legPassed.innerText = passed;
+
+        const pieEmptyMsg = document.getElementById('pie-chart-empty');
+        const pieCanvas = document.getElementById('vuln-pie-chart');
+
+        if (total > 0 && pieCanvas) {
+            if (pieEmptyMsg) pieEmptyMsg.style.display = 'none';
+            // Destroy old chart if exists
+            if (window._vulnPieChart) {
+                window._vulnPieChart.destroy();
+            }
+            window._vulnPieChart = new Chart(pieCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: ['High', 'Medium', 'Low/Info', 'Passed'],
+                    datasets: [{
+                        data: [high, medium, low, passed],
+                        backgroundColor: ['#ef4444', '#f59e0b', '#6366f1', '#10b981'],
+                        borderColor: 'rgba(0,0,0,0.3)',
+                        borderWidth: 2,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '65%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => ` ${ctx.label}: ${ctx.raw} (${Math.round(ctx.raw / total * 100)}%)`
+                            }
+                        }
+                    }
+                }
+            });
+        } else if (pieEmptyMsg) {
+            pieEmptyMsg.style.display = 'block';
+        }
 
         // Render detailed findings tables with Remediation column
         container.innerHTML = '';
