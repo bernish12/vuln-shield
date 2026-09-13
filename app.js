@@ -258,6 +258,8 @@ const app = {
 
         findings.forEach(f => {
             const item = document.createElement('div');
+            const uniqueId = 'finding-' + Math.random().toString(36).substring(2, 9);
+            item.id = uniqueId;
             item.className = `finding-item severity-${f.severity}`;
             
             let icon = 'fa-circle-check text-green';
@@ -329,6 +331,9 @@ const app = {
                 </div>
                 <div class="finding-desc">${f.desc}</div>
                 ${fixToggleBtnHtml}
+                <button class="btn-ai-fix btn-ai-trigger" data-title="${encodeURIComponent(f.title)}" data-desc="${encodeURIComponent(f.desc || '')}">
+                    <i class="fa-solid fa-robot"></i> Ask AI to Fix
+                </button>
                 ${fixDrawerHtml}
             `;
 
@@ -360,12 +365,23 @@ const app = {
                         this.showToast('Copied to Clipboard', 'Ready fix code snippet copied successfully.');
                         setTimeout(() => {
                             btnCopy.innerHTML = `<i class="fa-regular fa-copy"></i> Copy Fix`;
-                            btnCopy.style.background = '';
+                            btnCopy.style.background = 'rgba(0,0,0,0.4)';
                             btnCopy.style.color = '';
-                        }, 2000);
-                    }).catch(err => {
-                        console.error('Copy failed', err);
+                        }, 3000);
+                    }).catch(() => {
+                        this.showToast('Copy Failed', 'Could not copy to clipboard.');
                     });
+                });
+            }
+
+            // Wire AI button
+            const btnAi = item.querySelector('.btn-ai-trigger');
+            if (btnAi) {
+                btnAi.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const t = decodeURIComponent(btnAi.getAttribute('data-title'));
+                    const d = decodeURIComponent(btnAi.getAttribute('data-desc'));
+                    if(window.openAiModal) window.openAiModal(t, d, uniqueId);
                 });
             }
 
@@ -749,28 +765,23 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
 
         this.renderDeviceChecklist(activeOS);
 
-                saveAuditBtn.addEventListener('click', async () => {
+        saveAuditBtn.addEventListener('click', async () => {
             const currentOS = DeviceScanner.currentOS;
-            const checklist = [];
-            DeviceScanner.checklists[currentOS].forEach(item => {
-                if (localStorage.getItem(`vulnshield_audit_${currentOS}_${item.id}`) === 'true') {
-                    checklist.push(item.id);
-                }
-            });
             try {
-                const token = sessionStorage.getItem('vulnshield_token');
-                const response = await fetch('/api/scan/device', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
-                    body: JSON.stringify({ os: currentOS, checklist })
-                });
-                if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.error || 'Server error');
+                // Perform calculation locally since device auditing is client-side
+                const score = DeviceScanner.calculateScore(currentOS);
+                
+                // Update UI badge
+                const badge = document.getElementById('device-score-badge');
+                if (badge) {
+                    badge.innerText = `${score}%`;
+                    if (score === 100) badge.className = 'score-badge text-green';
+                    else if (score >= 70) badge.className = 'score-badge text-yellow';
+                    else badge.className = 'score-badge text-red';
                 }
-                const data = await response.json();
-                const score = data.score;
+
                 this.showToast('Audit Committed', `Host OS score updated to ${score}%`);
+                localStorage.setItem('vulnshield_latest_scan', 'device');
                 this.recalculateGlobalScore();
             } catch (e) {
                 console.error('Device audit failed:', e);
@@ -1049,6 +1060,89 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
 
         // Load initial default feed query
         executeCveSearch('Nginx');
+
+        // Setup Data Breach Email Checker
+        const breachContainer = document.getElementById('breach-results-container');
+        const breachBtn = document.getElementById('btn-search-breach');
+        const breachInput = document.getElementById('breach-search-input');
+
+        const executeBreachSearch = async (email) => {
+            if (!breachContainer) return;
+            breachContainer.innerHTML = '<div class="matrix-empty"><i class="fa-solid fa-spinner fa-spin"></i> Interrogating Dark Web Leak Databases...</div>';
+
+            try {
+                const resp = await fetch(`https://api.xposedornot.com/v1/check-email/${encodeURIComponent(email)}`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (resp.status === 404) {
+                    // API returns 404 when email is clean
+                    breachContainer.innerHTML = '<div class="matrix-empty text-green"><i class="fa-solid fa-shield-halved"></i> ✅ No known data breaches found for this identity. This email address is clean.</div>';
+                    return;
+                }
+
+                if (!resp.ok) throw new Error(`API returned status ${resp.status}`);
+
+                const data = await resp.json();
+
+                // XposedOrNot returns { breaches: [[ "Adobe", "LinkedIn", ... ]], email: "...", status: "success" }
+                const breachList = (data.breaches && data.breaches[0]) ? data.breaches[0] : [];
+
+                if (breachList.length === 0) {
+                    breachContainer.innerHTML = '<div class="matrix-empty text-green"><i class="fa-solid fa-shield-halved"></i> ✅ No known data breaches found for this identity.</div>';
+                    return;
+                }
+
+                // Render summary header
+                breachContainer.innerHTML = `
+                    <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.4); border-radius: 8px; padding: 14px 18px; margin-bottom: 14px; display:flex; align-items:center; gap: 12px;">
+                        <i class="fa-solid fa-skull-crossbones" style="color:#ef4444; font-size:1.6rem;"></i>
+                        <div>
+                            <div style="font-weight:700; color:#ef4444; font-size:1rem;">⚠️ IDENTITY COMPROMISED — ${breachList.length} Data Breach${breachList.length > 1 ? 'es' : ''} Found</div>
+                            <div style="color:#a8b2d1; font-size:0.8rem; margin-top:2px;">Email <strong style="color:#fff;">${email}</strong> was exposed in the following public data leaks.</div>
+                        </div>
+                    </div>
+                `;
+
+                // Show each breach as a card
+                breachList.forEach(breachName => {
+                    const card = document.createElement('div');
+                    card.className = 'feed-item';
+                    card.innerHTML = `
+                        <div class="feed-badge-icon high">
+                            <i class="fa-solid fa-database"></i>
+                        </div>
+                        <div class="feed-body">
+                            <div class="feed-meta">
+                                <span class="feed-time">Breach Source</span>
+                                <span class="badge badge-danger" style="margin-left:8px;">LEAKED</span>
+                            </div>
+                            <div class="feed-title">${breachName}</div>
+                            <div class="feed-desc" style="color: #a8b2d1;">Your email address was found in the <strong>${breachName}</strong> data breach. Change passwords associated with this email immediately.</div>
+                        </div>
+                    `;
+                    breachContainer.appendChild(card);
+                });
+
+            } catch (e) {
+                console.error('Breach scan error:', e);
+                breachContainer.innerHTML = '<div class="matrix-empty text-muted"><i class="fa-solid fa-circle-exclamation"></i> Breach database unreachable. Check your internet connection and try again.</div>';
+            }
+        };
+
+        if (breachBtn && breachInput) {
+            breachBtn.addEventListener('click', () => {
+                const email = breachInput.value.trim();
+                if (email) executeBreachSearch(email);
+            });
+            breachInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const email = breachInput.value.trim();
+                    if (email) executeBreachSearch(email);
+                }
+            });
+        }
     },
 
     // Helper: Toast Notifications
@@ -1071,3 +1165,79 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
 document.addEventListener('DOMContentLoaded', () => {
     app.init();
 });
+
+// --- AI Auto-Fix Global Logic ---
+window.currentActiveFindingId = null;
+
+window.openAiModal = function(title, desc, findingId) {
+    window.currentActiveFindingId = findingId;
+    const modal = document.getElementById('ai-modal');
+    const ctxDisplay = document.getElementById('ai-context-display');
+    const typing = document.getElementById('ai-typing');
+    const resContent = document.getElementById('ai-response-content');
+    const expEl = document.getElementById('ai-explanation');
+    const codeEl = document.getElementById('ai-code-block');
+    const termSim = document.getElementById('ai-terminal-sim');
+    const codeWrapper = document.getElementById('ai-code-wrapper');
+
+    if (!modal) return;
+    
+    modal.classList.remove('d-none');
+    ctxDisplay.innerHTML = `<strong>Analyzing:</strong> ${title}`;
+    
+    // Reset view
+    resContent.classList.add('d-none');
+    typing.classList.remove('d-none');
+    expEl.innerHTML = '';
+    codeEl.textContent = '';
+
+    // Simulate AI generation delay
+    setTimeout(() => {
+        typing.classList.add('d-none');
+        resContent.classList.remove('d-none');
+        
+        const titleLower = title.toLowerCase();
+        const vulnLower = titleLower + ' ' + (desc || '').toLowerCase();
+        let explanation = "";
+        let codeSnippet = "";
+
+        if (titleLower.includes("csp") || titleLower.includes("content security")) {
+            explanation = "Content Security Policy (CSP) is missing or misconfigured. A strong CSP prevents XSS and data injection attacks by restricting the sources of executable scripts.";
+            codeSnippet = `// Mitigation for CSP (Express.js)\nconst helmet = require('helmet');\n\napp.use(helmet.contentSecurityPolicy({\n  directives: {\n    defaultSrc: ["'self'"],\n    scriptSrc: ["'self'", "https://trusted.cdn.com"],\n    objectSrc: ["'none'"],\n    upgradeInsecureRequests: [],\n  }\n}));`;
+        } else if (vulnLower.includes("xss") || vulnLower.includes("cross-site")) {
+            explanation = "I've analyzed the finding. This is a Cross-Site Scripting (XSS) vulnerability. It occurs when untrusted user input is rendered without proper escaping. To mitigate this, you must sanitize the input using a library like DOMPurify before injecting it into the DOM.";
+            codeSnippet = `// Mitigation for XSS\nimport DOMPurify from 'dompurify';\n\nconst userInput = req.body.input;\n// Sanitize input before rendering\nconst safeContent = DOMPurify.sanitize(userInput);\nelement.innerHTML = safeContent;`;
+        } else if (vulnLower.includes("sql") || vulnLower.includes("injection")) {
+            explanation = "This is a SQL Injection vulnerability. Attackers can manipulate your database queries by injecting SQL commands through user inputs. The immediate fix is to switch from raw string concatenation to parameterized queries or prepared statements.";
+            codeSnippet = `// Mitigation for SQL Injection\nconst userId = req.body.userId;\n\n// ❌ VULNERABLE:\n// db.query('SELECT * FROM users WHERE id = ' + userId);\n\n// ✅ SECURE (Parameterized Query):\ndb.execute('SELECT * FROM users WHERE id = ?', [userId], (err, results) => {\n    if (err) throw err;\n    // Handle results safely\n});`;
+        } else if (vulnLower.includes("cors") || titleLower.includes("cross-origin")) {
+            explanation = "A misconfigured CORS (Cross-Origin Resource Sharing) policy has been detected. This can allow unauthorized domains to access your API data. Ensure that 'Access-Control-Allow-Origin' does not use a wildcard (*) for authenticated endpoints.";
+            codeSnippet = `// Mitigation for CORS (Express.js)\nconst cors = require('cors');\n\nconst corsOptions = {\n  origin: 'https://your-trusted-site.com',\n  optionsSuccessStatus: 200\n};\n\napp.use(cors(corsOptions));`;
+        } else if (vulnLower.includes("admin") || vulnLower.includes("access control") || vulnLower.includes("authorization")) {
+            explanation = "I detected an Access Control vulnerability. Sensitive paths (like /admin) or administrative endpoints should never be publicly accessible. You must enforce strict authentication checks and Role-Based Access Control (RBAC) to ensure only authorized personnel can access these resources.";
+            codeSnippet = `// Mitigation for Broken Access Control (Express.js)\nconst ensureAdmin = (req, res, next) => {\n    // Verify user is authenticated and has 'admin' role\n    if (req.user && req.user.role === 'admin') {\n        return next();\n    }\n    return res.status(403).json({ error: 'Forbidden: Admin access required' });\n};\n\n// Secure the admin route\napp.use('/admin', ensureAdmin, adminRouter);`;
+        } else {
+            explanation = `I detected a potential security risk related to '${title}'. It is critical to review the related code execution paths and ensure all inputs are strictly validated and output is properly encoded.`;
+            codeSnippet = `// Generic Mitigation Strategy\nfunction secureProcess(inputData) {\n    // 1. Strict Input Validation\n    if (typeof inputData !== 'string' || inputData.length > 255) {\n        throw new Error('Invalid input');\n    }\n    // 2. Output Encoding (Context-Aware)\n    return escapeHtml(inputData);\n}`;
+        }
+        
+        // Typing effect for explanation
+        let i = 0;
+        function typeWriter() {
+            if (i < explanation.length) {
+                expEl.innerHTML += explanation.charAt(i);
+                i++;
+                setTimeout(typeWriter, 15);
+            } else {
+                codeEl.textContent = codeSnippet;
+            }
+        }
+        typeWriter();
+
+    }, 2000); // 2 second mock delay
+};
+
+window.closeAiModal = function() {
+    const modal = document.getElementById('ai-modal');
+    if (modal) modal.classList.add('d-none');
+};
