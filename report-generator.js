@@ -260,7 +260,8 @@ const ReportGenerator = {
         } else {
             allFindings.forEach(f => {
                 const remediation = this.getRemediation(f.title, f.severity);
-                const sev = (f.severity || '').toUpperCase();
+                let sev = (f.severity || '').toUpperCase();
+                if (sev === 'WARNING') sev = 'MEDIUM';
                 tableRows.push([f.title, sev, f.desc, remediation]);
             });
         }
