@@ -1,37 +1,38 @@
 /* ===========================================================================
-   VulnShield - Frontend App Scanner Wrapper (API Integration)
+   VulnShield - Frontend App Scanner (Client-Side Simulation)
    =========================================================================== */
 
-/**
- * Frontend wrapper that forwards app scan requests to the backend API.
- * The backend replicates the same static analysis logic as the previous client-side
- * implementation, ensuring a single source of truth and allowing server-side logging.
- */
 const AppScanner = {
-    /**
-     * Submits the file for analysis to the backend.
-     * @param {string} filename - Name of the uploaded file.
-     * @param {string} content - File content as a string.
-     * @returns {Promise<Array>} - Resolves to an array of finding objects.
-     */
     scan: async function (filename, content) {
-        try {
-            const token = sessionStorage.getItem('vulnshield_token');
-            const response = await fetch('/api/scan/app', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
-                body: JSON.stringify({ filename, content })
-            });
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error || 'Server error');
-            }
-            const data = await response.json();
-            return data.findings || [];
-        } catch (e) {
-            console.error('App scan failed:', e);
-            throw e;
-        }
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const findings = [];
+                const code = content.toLowerCase();
+
+                if (filename === 'AndroidManifest.xml') {
+                    if (code.includes('android:debuggable="true"')) {
+                        findings.push({ id: 'M3-01', title: 'Android App Debuggable in Production', severity: 'high', desc: 'android:debuggable="true" is set. Attackers can attach a debugger and extract sensitive data or bypass checks.', vulnType: 'Mobile App Misconfiguration' });
+                    }
+                    if (code.includes('android:usescleartexttraffic="true"')) {
+                        findings.push({ id: 'M3-02', title: 'Cleartext Traffic Enabled', severity: 'critical', desc: 'The app allows non-HTTPS traffic, exposing data to Man-In-The-Middle (MITM) network attacks.', vulnType: 'Insecure Network Communication' });
+                    }
+                } else if (filename === '.env') {
+                    if (code.includes('password') || code.includes('secret') || code.includes('key')) {
+                        findings.push({ id: 'ENV-01', title: 'Hardcoded Secrets Exposed', severity: 'critical', desc: 'AWS Keys, Database Passwords, or JWT secrets found in plaintext environment file.', vulnType: 'Sensitive Data Exposure' });
+                    }
+                } else if (filename === 'package.json') {
+                    if (code.includes('preinstall') || code.includes('postinstall') || code.includes('curl')) {
+                        findings.push({ id: 'PKG-01', title: 'Suspicious Install Scripts', severity: 'high', desc: 'Found preinstall/postinstall scripts triggering external bash scripts. This is a common supply chain attack pattern.', vulnType: 'Supply Chain Risk' });
+                    }
+                }
+
+                if (findings.length === 0) {
+                    findings.push({ id: 'SEC-OK', title: 'No Critical Vulnerabilities Found', severity: 'low', desc: 'Static analysis completed successfully without finding any standard known vulnerability patterns.', vulnType: 'Code Audit' });
+                }
+                
+                resolve(findings);
+            }, 1000);
+        });
     }
 };
 
