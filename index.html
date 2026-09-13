@@ -574,6 +574,24 @@
                         <div class="threat-feed-container mt-4" id="cve-results-container">
                             <!-- Populated dynamically -->
                         </div>
+
+                        <!-- Data Breach Email Checker -->
+                        <div class="card-header-actions mt-5">
+                            <div>
+                                <h3 class="card-title">Dark Web Data Breach Scanner</h3>
+                                <p class="text-muted small">Check if a target email address has been compromised in known public data breaches.</p>
+                            </div>
+                            <span class="badge badge-accent"><i class="fa-solid fa-user-secret"></i> Identity Intel</span>
+                        </div>
+                        <div class="cve-search-bar mt-3 d-flex" style="gap: 10px;">
+                            <input type="email" id="breach-search-input" class="form-input" style="flex:1;" placeholder="Enter email address (e.g., target@company.com)...">
+                            <button class="btn btn-primary" id="btn-search-breach">
+                                <i class="fa-solid fa-magnifying-glass"></i> Scan Dark Web
+                            </button>
+                        </div>
+                        <div class="threat-feed-container mt-4" id="breach-results-container">
+                            <!-- Populated dynamically -->
+                        </div>
                     </div>
                 </section>
 
@@ -642,6 +660,29 @@
 
             </div>
         </main>
+    </div>
+
+    <!-- AI Auto-Fix Modal -->
+    <div class="ai-modal-overlay d-none" id="ai-modal">
+        <div class="ai-modal-content">
+            <div class="ai-modal-header">
+                <h3><i class="fa-solid fa-robot text-accent"></i> Bernish AI Auto-Fix</h3>
+                <button class="ai-modal-close" onclick="closeAiModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="ai-modal-body">
+                <div class="ai-context" id="ai-context-display"></div>
+                <div class="ai-typing-indicator d-none" id="ai-typing">
+                    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                </div>
+                <div class="ai-response-content d-none" id="ai-response-content">
+                    <p class="ai-explanation" id="ai-explanation"></p>
+                    <div class="ai-code-wrapper" id="ai-code-wrapper">
+                        <div class="ai-code-header">Recommended Mitigation</div>
+                        <pre><code class="ai-code-block" id="ai-code-block"></code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Notification Toast -->
