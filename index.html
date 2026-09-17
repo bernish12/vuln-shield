@@ -550,6 +550,52 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- ===== MOBILE DEEP FORENSICS SCANNER ===== -->
+                    <div class="mob-scan-section">
+                        <div class="mob-scan-header">
+                            <div>
+                                <div class="mob-scan-title">
+                                    <i class="fa-solid fa-mobile-screen-button"></i>
+                                    Real-Time Mobile Device Forensics Auditor
+                                </div>
+                                <div class="mob-scan-subtitle">Live hardware-level Android security audit via ADB: Root detection, SELinux integrity, patch level & process inspection</div>
+                            </div>
+                            <span class="badge badge-accent" id="mob-device-status-badge"><i class="fa-solid fa-satellite-dish"></i> Checking Device...</span>
+                        </div>
+
+                        <div class="mob-scan-actions">
+                            <button class="btn btn-primary" id="btn-mob-real" onclick="MobileScanner.runRealScan()" style="background: linear-gradient(135deg, #00d2ff, #00f0ff); color: #000; font-weight: 700; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-fingerprint"></i> Run Real Device Forensics Audit
+                            </button>
+                            <button class="btn-mob-clean" id="btn-mob-benchmark" onclick="MobileScanner.runScan('clean')" style="display: inline-flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-shield-halved"></i> Clean Baseline Audit
+                            </button>
+                            <button class="btn-mob-infected" id="btn-mob-benchmark-threat" onclick="MobileScanner.runScan('infected')" style="display: inline-flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-bug"></i> Pegasus IOC Benchmark
+                            </button>
+                            <button class="btn-mob-reset" id="btn-mob-reset" onclick="MobileScanner.resetScan()">
+                                <i class="fa-solid fa-rotate-left"></i> Reset Scan
+                            </button>
+                        </div>
+
+                        <!-- Progress -->
+                        <div class="mob-progress-container">
+                            <div class="mob-progress-label">
+                                <span id="mob-scan-phase">Select a device type to begin</span>
+                            </div>
+                            <div class="mob-progress-track">
+                                <div class="mob-progress-bar" id="mob-scan-bar"></div>
+                            </div>
+                        </div>
+
+                        <!-- Terminal + Verdict -->
+                        <div class="mob-scan-wrapper d-none" id="mob-scan-wrapper">
+                            <div class="mob-terminal" id="mob-scan-terminal"></div>
+                            <div class="mob-verdict d-none" id="mob-scan-verdict"></div>
+                        </div>
+                    </div>
+
                 </section>
 
                 <!-- ================= TAB: THREAT FEED ================= -->
@@ -706,6 +752,7 @@
     <script src="scanner-owasp.js"></script>
     <script src="scanner-device.js"></script>
     <script src="report-generator.js"></script>
+    <script src="mobile-scanner.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
