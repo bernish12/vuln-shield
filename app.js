@@ -131,6 +131,10 @@ const app = {
             ReportGenerator.renderReportLogs('executive-summary-log');
         }
 
+        if (tabId === 'scan-device' && typeof MobileScanner !== 'undefined') {
+            MobileScanner.checkDeviceStatus();
+        }
+
         window.location.hash = tabId;
     },
 
