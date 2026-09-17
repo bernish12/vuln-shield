@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vuln-Shield Poster</title>
+    <!-- Use standard fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* A1 Poster aspect ratio (approx 7016 x 9933 px at 300dpi). We'll scale it for screen viewing */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050b14;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .poster-container {
+            width: 1200px;
+            height: 1700px; /* A-series aspect ratio */
+            background-image: url('poster-bg.png');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            font-family: 'Inter', sans-serif;
+            color: #ffffff;
+            box-shadow: 0 0 50px rgba(10, 255, 137, 0.2);
+            overflow: hidden;
+            display: grid;
+            grid-template-rows: 250px 1fr 100px;
+        }
+
+        /* Overlay to darken background slightly for text readability */
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, rgba(5, 11, 20, 0.8) 0%, rgba(5, 11, 20, 0.3) 30%, rgba(5, 11, 20, 0.4) 70%, rgba(5, 11, 20, 0.9) 100%);
+            z-index: 1;
+        }
+
+        .content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 60px;
+            box-sizing: border-box;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 85px;
+            font-weight: 900;
+            color: #0aff89;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin: 0;
+            text-shadow: 0 0 20px rgba(10, 255, 137, 0.5);
+        }
+
+        .subtitle {
+            font-size: 32px;
+            color: #a8b2d1;
+            font-weight: 600;
+            margin-top: 15px;
+            letter-spacing: 2px;
+        }
+
+        /* Main Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            flex-grow: 1;
+        }
+
+        /* Glassmorphism Cards */
+        .card {
+            background: rgba(10, 25, 47, 0.7);
+            border: 2px solid rgba(10, 255, 137, 0.3);
+            border-radius: 15px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .card-title {
+            font-family: 'Orbitron', sans-serif;
+            color: #0aff89;
+            font-size: 36px;
+            margin-top: 0;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #0aff89;
+            padding-bottom: 15px;
+            display: inline-block;
+        }
+
+        .card-text {
+            font-size: 22px;
+            line-height: 1.6;
+            color: #ccd6f6;
+        }
+
+        ul {
+            padding-left: 20px;
+            margin-top: 10px;
+        }
+
+        li {
+            margin-bottom: 15px;
+            font-size: 22px;
+            color: #ccd6f6;
+        }
+        
+        li strong {
+            color: #0aff89;
+        }
+
+        /* Mock UI Elements for visual flair */
+        .mock-ui {
+            background: #020c1b;
+            border: 1px solid #0aff89;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 16px;
+            color: #0aff89;
+        }
+
+        .mock-ui .red { color: #ef4444; }
+        .mock-ui .gray { color: #8892b0; }
+
+        /* Footer */
+        .footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 2px solid rgba(10, 255, 137, 0.3);
+            padding-top: 30px;
+        }
+
+        .team-info {
+            font-size: 26px;
+            font-weight: 800;
+            color: #0aff89;
+        }
+        
+        .event-info {
+            font-size: 24px;
+            color: #a8b2d1;
+            font-weight: 600;
+        }
+
+        .qr-placeholder {
+            width: 100px;
+            height: 100px;
+            background: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #000;
+            font-weight: bold;
+            font-size: 14px;
+            text-align: center;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="poster-container">
+        <div class="overlay"></div>
+        
+        <div class="content">
+            <!-- Header section -->
+            <div class="header">
+                <h1 class="title">VULN-SHIELD</h1>
+                <div class="subtitle">Next-Gen Automated Cyber Defense & Threat Intelligence</div>
+            </div>
+
+            <!-- Two Column Layout -->
+            <div class="grid">
+                
+                <!-- Left Column -->
+                <div class="column">
+                    <div class="card">
+                        <h2 class="card-title">ABSTRACT / THE PROBLEM</h2>
+                        <div class="card-text">
+                            Modern cyber attacks target multiple vectors simultaneously. While traditional security tools focus on a single layer (e.g., only network firewalls or only antivirus), real-world data breaches happen across <strong>Web Servers</strong>, <strong>Employee Devices</strong>, and <strong>Dark Web Leaks</strong>. Small enterprises lack the budget to afford comprehensive enterprise-grade 360° protection suites.
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2 class="card-title">PROPOSED ARCHITECTURE</h2>
+                        <div class="card-text">
+                            Vuln-Shield introduces a unified dashboard utilizing an asynchronous Node.js backend.
+                            <br><br>
+                            <ul>
+                                <li><strong>Client Layer:</strong> Vanilla JS SPA for real-time, non-blocking UI rendering.</li>
+                                <li><strong>API Layer:</strong> Express.js middleware handling concurrent vulnerability scans.</li>
+                                <li><strong>OS Layer:</strong> Browser-fingerprinting and system auditing.</li>
+                                <li><strong>Intelligence Layer:</strong> Integration with XposedOrNot REST APIs.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="column">
+                    <div class="card" style="border-color: #ef4444; box-shadow: 0 10px 30px rgba(239, 68, 68, 0.2);">
+                        <h2 class="card-title" style="color: #ef4444; border-color: #ef4444;">CORE FEATURE 1: THREAT INTEL</h2>
+                        <div class="card-text">
+                            Live integration with Dark Web Breach Databases. Identifies compromised identities instantly.
+                        </div>
+                        <div class="mock-ui">
+                            > SCANNING IDENTITY: user@example.com<br>
+                            <span class="gray">> Querying XposedOrNot API...</span><br>
+                            <span class="red">[CRITICAL] IDENTITY COMPROMISED - 4 Breaches Found</span><br>
+                            > Source: LinkedIn (2012) - Passwords<br>
+                            > Source: Canva (2019) - Emails, Names
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2 class="card-title">CORE FEATURE 2: OWASP SCAN</h2>
+                        <div class="card-text">
+                            Automated HTTP Security Header analysis ensuring server compliance against OWASP Top 10 vulnerabilities (XSS, Clickjacking, MIME-Sniffing).
+                        </div>
+                        <div class="mock-ui">
+                            > Target: https://target-server.com<br>
+                            > Strict-Transport-Security: <span class="gray">MISSING (High Risk)</span><br>
+                            > X-Frame-Options: <span class="gray">PRESENT (Secured)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h2 class="card-title">CORE FEATURE 3: COMPLIANCE</h2>
+                        <div class="card-text">
+                            Zero-trust local device auditing evaluating browser integrity, OS security, and network protocol safety. Automatically aggregates all scans into a <strong>PDF Executive Report</strong>.
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <div class="team-info">PRESENTED BY: BERNISH12</div>
+                <div class="event-info">SPECTRA 2026 | CYBER SECURITY THEME</div>
+                <div class="qr-placeholder">Scan to<br>View Live App</div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
