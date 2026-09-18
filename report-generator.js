@@ -54,6 +54,7 @@ const ReportGenerator = {
             appScan: latestScan === 'app' ? this.getSavedAppScan() : null,
             owaspScan: latestScan === 'owasp' ? this.getSavedOwaspScan() : null,
             deviceAudit: latestScan === 'device' ? this.getSavedDeviceAudit() : null,
+            remoteScan: latestScan === 'remote' ? this.getSavedRemoteScan() : null,
             summary: {
                 high: 0,
                 medium: 0,
@@ -104,6 +105,15 @@ const ReportGenerator = {
             });
         }
 
+        if (state.remoteScan && state.remoteScan.findings) {
+            state.remoteScan.findings.forEach(f => {
+                if (f.severity === 'danger' || f.severity === 'critical') state.summary.high++;
+                else if (f.severity === 'warn' || f.severity === 'warning') state.summary.medium++;
+                else if (f.severity === 'info') state.summary.low++;
+                else if (f.severity === 'passed') state.summary.passed++;
+            });
+        }
+
         // Global Score Algorithm
         const scores = [];
         if (state.webScan && state.webScan.findings) {
@@ -123,6 +133,9 @@ const ReportGenerator = {
             const bad = state.owaspScan.findings.filter(f => f.severity === 'high' || f.severity === 'critical').length * 20 +
                         state.owaspScan.findings.filter(f => f.severity === 'warning').length * 8;
             scores.push(Math.max(100 - bad, 0));
+        }
+        if (state.remoteScan && state.remoteScan.threatScore !== undefined) {
+            scores.push(state.remoteScan.threatScore);
         }
 
         if (scores.length > 0) {
@@ -154,6 +167,11 @@ const ReportGenerator = {
         const activeOS = localStorage.getItem('vulnshield_device_active_os') || 'windows';
         const score = (typeof DeviceScanner !== 'undefined') ? DeviceScanner.calculateScore(activeOS) : 0;
         return { os: activeOS, score: score, timestamp: new Date().toISOString() };
+    },
+
+    getSavedRemoteScan: function () {
+        const raw = localStorage.getItem('vulnshield_remote_scan');
+        return raw ? JSON.parse(raw) : null;
     },
 
     exportJson: function () {
@@ -203,6 +221,8 @@ const ReportGenerator = {
             targetStr = `Target URL: ${report.owaspScan.url}`;
         } else if (report.deviceAudit && report.deviceAudit.os) {
             targetStr = `Target OS: ${report.deviceAudit.os.toUpperCase()} System`;
+        } else if (report.remoteScan && report.remoteScan.targetIp) {
+            targetStr = `Remote IP: ${report.remoteScan.targetIp}`;
         }
         doc.setFont("helvetica", "bold");
         doc.setTextColor(0, 0, 0);
@@ -248,6 +268,15 @@ const ReportGenerator = {
                     title: `[OS] ${item.title}`,
                     severity: passed ? 'passed' : 'warning',
                     desc: passed ? 'Control parameter is verified active.' : 'Security standard is unverified or disabled.'
+                });
+            });
+        }
+        if (report.remoteScan && report.remoteScan.findings) {
+            report.remoteScan.findings.forEach(f => {
+                allFindings.push({
+                    title: `[Remote IP] Port ${f.port} (${f.service})`,
+                    severity: f.severity === 'danger' ? 'critical' : f.severity,
+                    desc: f.details
                 });
             });
         }
@@ -518,6 +547,35 @@ const ReportGenerator = {
                         <td style="font-weight: 600;">${item.title}</td>
                         <td><span class="severity-label ${passed ? 'passed' : 'warning'}">${passed ? 'passed' : 'warning'}</span></td>
                         <td class="text-muted small">${passed ? 'Control parameter is verified active.' : this.getRemediation(item.title, 'warning')}</td>
+                    </tr>
+                `;
+            });
+            html += `</tbody></table></div>`;
+        }
+
+        if (report.remoteScan) {
+            hasContent = true;
+            html += `
+                <div class="report-section-log mb-4">
+                    <h5 class="text-cyan" style="font-size: 15px; margin-bottom: 8px; color: #00f0ff;"><i class="fa-solid fa-network-wired"></i> Remote IP Audit (${report.remoteScan.targetIp})</h5>
+                    <table class="summary-log-table">
+                        <thead>
+                            <tr>
+                                <th>Exposed Port / Service</th>
+                                <th>Severity</th>
+                                <th>Remediation Advice</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            report.remoteScan.findings.forEach(f => {
+                let sevClass = f.severity === 'danger' ? 'critical' : f.severity;
+                if (sevClass === 'warn') sevClass = 'warning';
+                html += `
+                    <tr>
+                        <td style="font-weight: 600;">Port ${f.port} (${f.service})</td>
+                        <td><span class="severity-label ${sevClass}">${sevClass}</span></td>
+                        <td class="text-muted small">${f.remediation}</td>
                     </tr>
                 `;
             });
