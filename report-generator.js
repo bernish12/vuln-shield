@@ -50,11 +50,11 @@ const ReportGenerator = {
         const latestScan = localStorage.getItem('vulnshield_latest_scan');
         const state = {
             timestamp: new Date().toISOString(),
-            webScan: this.getSavedWebScan(),
-            appScan: this.getSavedAppScan(),
-            owaspScan: this.getSavedOwaspScan(),
-            deviceAudit: this.getSavedDeviceAudit(),
-            remoteScan: this.getSavedRemoteScan(),
+            webScan: latestScan === 'web' ? this.getSavedWebScan() : null,
+            appScan: latestScan === 'app' ? this.getSavedAppScan() : null,
+            owaspScan: latestScan === 'owasp' ? this.getSavedOwaspScan() : null,
+            deviceAudit: latestScan === 'device' ? this.getSavedDeviceAudit() : null,
+            remoteScan: latestScan === 'remote' ? this.getSavedRemoteScan() : null,
             summary: {
                 high: 0,
                 medium: 0,
@@ -212,24 +212,17 @@ const ReportGenerator = {
         doc.setFontSize(10);
         doc.text(`Audit Date: ${dateStr}`, 14, 34);
 
-        let targetStr = "Target: Comprehensive Audit";
-        const targets = [];
-        if (report.webScan) targets.push("Web");
-        if (report.appScan) targets.push("Code");
-        if (report.owaspScan) targets.push("OWASP");
-        if (report.deviceAudit) targets.push("Local OS");
-        if (report.remoteScan) targets.push("Remote IP");
-
-        if (targets.length === 1) {
-            if (report.webScan) targetStr = `Target Domain: ${report.webScan.domain}`;
-            if (report.appScan) targetStr = `Target File: ${report.appScan.filename}`;
-            if (report.owaspScan) targetStr = `Target URL: ${report.owaspScan.url}`;
-            if (report.deviceAudit) targetStr = `Target OS: ${report.deviceAudit.os.toUpperCase()} System`;
-            if (report.remoteScan) targetStr = `Remote IP: ${report.remoteScan.targetIp}`;
-        } else if (targets.length > 1) {
-            targetStr = `Targets: Comprehensive Multi-Vector Audit (${targets.join(', ')})`;
-        } else {
-            targetStr = "Target: No vectors audited";
+        let targetStr = "Target: N/A";
+        if (report.webScan && report.webScan.domain) {
+            targetStr = `Target Domain / IP: ${report.webScan.domain}`;
+        } else if (report.appScan && report.appScan.filename) {
+            targetStr = `Target File: ${report.appScan.filename}`;
+        } else if (report.owaspScan && report.owaspScan.url) {
+            targetStr = `Target URL: ${report.owaspScan.url}`;
+        } else if (report.deviceAudit && report.deviceAudit.os) {
+            targetStr = `Target OS: ${report.deviceAudit.os.toUpperCase()} System`;
+        } else if (report.remoteScan && report.remoteScan.targetIp) {
+            targetStr = `Remote IP: ${report.remoteScan.targetIp}`;
         }
         
         doc.setFont("helvetica", "bold");
