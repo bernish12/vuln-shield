@@ -212,22 +212,30 @@ const ReportGenerator = {
         doc.setFontSize(10);
         doc.text(`Audit Date: ${dateStr}`, 14, 34);
 
+        let scanTypeStr = "Scan Type: N/A";
         let targetStr = "Target: N/A";
         if (report.webScan && report.webScan.domain) {
+            scanTypeStr = "Scan Type: Web Application Assessment";
             targetStr = `Target Domain / IP: ${report.webScan.domain}`;
         } else if (report.appScan && report.appScan.filename) {
+            scanTypeStr = "Scan Type: Mobile App / Code Scanner";
             targetStr = `Target File: ${report.appScan.filename}`;
         } else if (report.owaspScan && report.owaspScan.url) {
+            scanTypeStr = "Scan Type: OWASP Top 10 Audit";
             targetStr = `Target URL: ${report.owaspScan.url}`;
         } else if (report.deviceAudit && report.deviceAudit.os) {
+            scanTypeStr = "Scan Type: Host Laptop OS Audit";
             targetStr = `Target OS: ${report.deviceAudit.os.toUpperCase()} System`;
         } else if (report.remoteScan && report.remoteScan.targetIp) {
+            scanTypeStr = "Scan Type: Remote Laptop Forensics";
             targetStr = `Remote IP: ${report.remoteScan.targetIp}`;
         }
         
         doc.setFont("helvetica", "bold");
         doc.setTextColor(0, 0, 0);
-        doc.text(targetStr, 14, 40);
+        doc.text(scanTypeStr, 14, 40);
+        doc.setFont("helvetica", "normal");
+        doc.text(targetStr, 14, 46);
 
         // 2. Grade Badge
         doc.setFont("helvetica", "bold");
@@ -241,13 +249,13 @@ const ReportGenerator = {
         doc.setFontSize(12);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(0, 0, 0);
-        doc.text(`Overall Score: ${report.summary.totalScore !== null ? report.summary.totalScore + '/100' : 'N/A'}`, 14, 48);
+        doc.text(`Overall Score: ${report.summary.totalScore !== null ? report.summary.totalScore + '/100' : 'N/A'}`, 14, 54);
         doc.setFont("helvetica", "bold");
-        doc.text(`High Critical Risks: ${report.summary.high}`, 14, 55);
+        doc.text(`High Critical Risks: ${report.summary.high}`, 14, 61);
         doc.setFont("helvetica", "bold");
-        doc.text(`Medium Warnings: ${report.summary.medium}`, 100, 55);
+        doc.text(`Medium Warnings: ${report.summary.medium}`, 100, 61);
         doc.setFont("helvetica", "bold");
-        doc.text(`Passed Controls: ${report.summary.passed}`, 14, 62);
+        doc.text(`Passed Controls: ${report.summary.passed}`, 14, 68);
 
         // 4. Prepare Table Data
         const allFindings = [];
@@ -298,7 +306,7 @@ const ReportGenerator = {
 
         // 5. Generate Table
         doc.autoTable({
-            startY: 70,
+            startY: 76,
             head: [tableColumn],
             body: tableRows,
             theme: 'grid',
