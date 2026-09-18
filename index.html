@@ -511,48 +511,47 @@
 
                 <!-- ================= TAB: DEVICE AUDIT ================= -->
                 <section id="tab-scan-device" class="tab-pane">
-                    <div class="grid-layout cols-3">
-                        <!-- Browser Environment Assessment -->
-                        <div class="card col-span-1">
-                            <h3 class="card-title">Browser Environment Audit</h3>
-                            <p class="text-muted small">Real-time local browser privacy and footprint checks.</p>
-                            
-                            <div class="env-audit-list mt-3" id="env-audit-list">
-                                <!-- Populated dynamically by scanner-device.js -->
+
+                    <!-- ===== 1. HOST LAPTOP DEEP FORENSICS SCANNER ===== -->
+                    <div class="mob-scan-section mb-5" style="margin-bottom: 30px;">
+                        <div class="mob-scan-header">
+                            <div>
+                                <div class="mob-scan-title">
+                                    <i class="fa-solid fa-laptop-code"></i>
+                                    Host Laptop Real-Time Forensics Auditor
+                                </div>
+                                <div class="mob-scan-subtitle">Live hardware telemetry via Windows Security, Defender & WMI: Malicious downloads, kernel integrity & covert webcam/mic spying detection</div>
+                            </div>
+                            <span class="badge badge-success"><i class="fa-brands fa-windows"></i> Host Hardware Active</span>
+                        </div>
+
+                        <div class="mob-scan-actions">
+                            <button class="btn btn-primary" id="btn-laptop-real" onclick="LaptopScanner.runRealScan()" style="background: linear-gradient(135deg, #00ff88, #00f0ff); color: #000; font-weight: 700; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-radar"></i> Run Real Laptop Forensics Audit
+                            </button>
+                            <button class="btn-mob-reset" id="btn-laptop-reset" onclick="LaptopScanner.resetScan()" style="display:none;">
+                                <i class="fa-solid fa-rotate-left"></i> Reset Audit
+                            </button>
+                        </div>
+
+                        <!-- Progress -->
+                        <div class="mob-progress-container">
+                            <div class="mob-progress-label">
+                                <span id="laptop-scan-phase">Click button above to initiate real-time host laptop audit</span>
+                            </div>
+                            <div class="mob-progress-track">
+                                <div class="mob-progress-bar" id="laptop-scan-bar"></div>
                             </div>
                         </div>
 
-                        <!-- Interactive Host Operating System Auditor Questionnaire -->
-                        <div class="card col-span-2">
-                            <h3 class="card-title">Laptop & Mobile Security Audit Checklist</h3>
-                            <p class="text-muted">Select your target device operating system and perform a comprehensive security configuration checklist to calculate the device score.</p>
-                            
-                            <div class="tab-selectors mt-3">
-                                <button class="btn-tab active" data-os="windows"><i class="fa-brands fa-windows"></i> Windows</button>
-                                <button class="btn-tab" data-os="macos"><i class="fa-brands fa-apple"></i> macOS</button>
-                                <button class="btn-tab" data-os="android"><i class="fa-brands fa-android"></i> Android</button>
-                                <button class="btn-tab" data-os="ios"><i class="fa-solid fa-mobile-button"></i> iOS</button>
-                            </div>
-
-                            <div class="os-audit-card mt-3">
-                                <div class="audit-checklist" id="os-audit-checklist">
-                                    <!-- Populated dynamically based on chosen OS -->
-                                </div>
-                            </div>
-
-                            <div class="device-audit-footer mt-4">
-                                <div class="device-audit-score-summary">
-                                    <span>DEVICE COMPLIANCE RATING:</span>
-                                    <span class="score-badge text-yellow" id="device-score-badge">0%</span>
-                                </div>
-                                <button class="btn btn-primary" id="btn-save-device-audit">
-                                    <i class="fa-solid fa-clipboard-check"></i> Commit Audit Findings
-                                </button>
-                            </div>
+                        <!-- Terminal + Verdict -->
+                        <div class="mob-scan-wrapper d-none" id="laptop-scan-wrapper">
+                            <div class="mob-terminal" id="laptop-scan-terminal"></div>
+                            <div class="mob-verdict d-none" id="laptop-scan-verdict"></div>
                         </div>
                     </div>
 
-                    <!-- ===== MOBILE DEEP FORENSICS SCANNER ===== -->
+                    <!-- ===== 2. MOBILE DEEP FORENSICS SCANNER ===== -->
                     <div class="mob-scan-section">
                         <div class="mob-scan-header">
                             <div>
@@ -754,6 +753,7 @@
     <script src="scanner-device.js"></script>
     <script src="report-generator.js"></script>
     <script src="mobile-scanner.js"></script>
+    <script src="laptop-scanner.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
