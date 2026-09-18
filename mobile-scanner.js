@@ -46,8 +46,10 @@ const MobileScanner = (() => {
             const device = await navigator.usb.requestDevice({ filters: [{ classCode: 255 }] });
             connectedWebUsbDevice = device;
             if (badge) {
+                const prodName = device.productName || 'Android Smartphone';
+                const mfgName = device.manufacturerName || 'VIVO';
                 badge.className = 'badge badge-success';
-                badge.innerHTML = `<i class="fa-brands fa-usb"></i> Connected: ${device.productName || 'Android Device'} (${device.manufacturerName || 'Unknown'})`;
+                badge.innerHTML = `<i class="fa-brands fa-usb"></i> Connected: ${prodName} (${mfgName})`;
             }
         } catch (e) {
             console.error("WebUSB pairing failed:", e);
@@ -58,10 +60,11 @@ const MobileScanner = (() => {
     // --- Fetch real device data from server (ADB) ---
     async function fetchRealDevice() {
         if (connectedWebUsbDevice) {
+            const prodName = connectedWebUsbDevice.productName || 'VIVO Android Device';
             // Generate simulated data based on the WebUSB hardware link for the live demo
             return {
                 connected: true,
-                device: `${connectedWebUsbDevice.productName || 'Android Device'}`,
+                device: prodName,
                 androidVersion: '14.0',
                 patchLevel: '2026-08-05',
                 isRooted: false,
