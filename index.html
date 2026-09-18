@@ -512,13 +512,16 @@
                 <!-- ================= TAB: DEVICE AUDIT ================= -->
                 <section id="tab-scan-device" class="tab-pane">
 
-                    <!-- Mode Toggle: Laptop vs Mobile Forensics -->
+                    <!-- Mode Toggle: Laptop vs Mobile Forensics vs Remote IP Audit -->
                     <div class="device-mode-toggle" style="display: flex; gap: 14px; margin-bottom: 24px; flex-wrap: wrap;">
                         <button class="btn btn-primary" id="toggle-btn-laptop" onclick="switchDeviceMode('laptop')" style="padding: 12px 24px; font-weight: 700; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 10px; border-radius: 10px; cursor: pointer; background: linear-gradient(135deg, #00ff88, #00f0ff); color: #000; border: none;">
                             <i class="fa-solid fa-laptop-code"></i> 1. Host Laptop Forensics
                         </button>
                         <button class="btn btn-outline" id="toggle-btn-mobile" onclick="switchDeviceMode('mobile')" style="padding: 12px 24px; font-weight: 700; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 10px; border-radius: 10px; cursor: pointer;">
                             <i class="fa-solid fa-mobile-screen-button"></i> 2. Mobile Phone Forensics
+                        </button>
+                        <button class="btn btn-outline" id="toggle-btn-remote" onclick="switchDeviceMode('remote')" style="padding: 12px 24px; font-weight: 700; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 10px; border-radius: 10px; cursor: pointer;">
+                            <i class="fa-solid fa-network-wired"></i> 3. Remote Laptop (IP Audit)
                         </button>
                     </div>
 
@@ -603,6 +606,76 @@
                         <div class="mob-scan-wrapper d-none" id="mob-scan-wrapper">
                             <div class="mob-terminal" id="mob-scan-terminal"></div>
                             <div class="mob-verdict d-none" id="mob-scan-verdict"></div>
+                        </div>
+                    </div>
+
+                    <!-- ===== 3. REMOTE LAPTOP & HOST IP SPYWARE AUDITOR ===== -->
+                    <div class="mob-scan-section d-none" id="section-remote-audit" style="margin-bottom: 30px;">
+                        <div class="mob-scan-header">
+                            <div>
+                                <div class="mob-scan-title">
+                                    <i class="fa-solid fa-network-wired" style="color: #ff0055;"></i>
+                                    Remote Laptop &amp; Host Spyware / Compromise Auditor (IP Scan)
+                                </div>
+                                <div class="mob-scan-subtitle">
+                                    Audit ANY remote laptop on your Wi-Fi/LAN via its IP Address: Detects active spyware RATs (Meterpreter, njRAT, DarkComet), covert VNC screen spying, exposed RDP, and SMB EternalBlue exploit vulnerabilities.
+                                </div>
+                            </div>
+                            <span class="badge badge-accent" style="border-color: rgba(255,0,85,0.4); color: #ff0055;">
+                                <i class="fa-solid fa-crosshairs"></i> Targeted Network Forensic Probe
+                            </span>
+                        </div>
+
+                        <!-- Target IP Input & Presets -->
+                        <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,0,85,0.25); border-radius: 10px; padding: 18px 20px; margin-bottom: 20px;">
+                            <label style="display: block; font-weight: 700; font-size: 0.88rem; color: #fff; margin-bottom: 8px;">
+                                <i class="fa-solid fa-bullseye" style="color: #00f0ff;"></i> Enter Target Laptop IP Address:
+                            </label>
+                            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                                <input type="text" id="remote-target-ip" class="form-input" placeholder="e.g., 192.168.1.45 or 10.0.0.15" style="flex: 1; min-width: 240px; font-family: monospace; font-size: 1rem; letter-spacing: 0.5px; background: rgba(0,0,0,0.6); border: 1px solid rgba(0,240,255,0.4); color: #00f0ff; padding: 12px 16px; border-radius: 8px;" value="192.168.1.105">
+                                
+                                <button class="btn btn-primary" id="btn-remote-live" onclick="RemoteScanner.runScan(false)" style="background: linear-gradient(135deg, #00ff88, #00f0ff); color: #000; font-weight: 700; padding: 12px 22px; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-radar"></i> Live Scan IP
+                                </button>
+                                
+                                <button class="btn" id="btn-remote-demo" onclick="RemoteScanner.runScan(true)" style="background: linear-gradient(135deg, #ff0055, #ffbb33); color: #fff; font-weight: 700; padding: 12px 22px; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-bug"></i> Test Demo (Compromised Host)
+                                </button>
+
+                                <button class="btn-mob-reset" id="btn-remote-reset" onclick="RemoteScanner.resetScan()" style="display:none;">
+                                    <i class="fa-solid fa-rotate-left"></i> Reset
+                                </button>
+                            </div>
+
+                            <!-- Target IP Quick Presets -->
+                            <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center;">
+                                <span style="font-size: 0.78rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Quick Presets:</span>
+                                <button type="button" onclick="RemoteScanner.setPreset('192.168.1.105', true)" style="background: rgba(255,0,85,0.15); border: 1px solid rgba(255,0,85,0.4); color: #ff0055; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-family: monospace;">
+                                    🚨 192.168.1.105 (Demo Infected Laptop)
+                                </button>
+                                <button type="button" onclick="RemoteScanner.setPreset('127.0.0.1', false)" style="background: rgba(0,255,136,0.15); border: 1px solid rgba(0,255,136,0.4); color: #00ff88; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-family: monospace;">
+                                    🛡️ 127.0.0.1 (Localhost / Clean Audit)
+                                </button>
+                                <button type="button" onclick="RemoteScanner.setPreset('192.168.1.1', false)" style="background: rgba(0,240,255,0.15); border: 1px solid rgba(0,240,255,0.4); color: #00f0ff; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-family: monospace;">
+                                    🌐 192.168.1.1 (Default Gateway)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar & Status -->
+                        <div class="mob-progress-container">
+                            <div class="mob-progress-label">
+                                <span id="remote-scan-phase">Enter target laptop IP and click Live Scan or Test Demo</span>
+                            </div>
+                            <div class="mob-progress-track">
+                                <div class="mob-progress-bar" id="remote-scan-bar"></div>
+                            </div>
+                        </div>
+
+                        <!-- Terminal + Verdict -->
+                        <div class="mob-scan-wrapper d-none" id="remote-scan-wrapper">
+                            <div class="mob-terminal" id="remote-scan-terminal"></div>
+                            <div class="mob-verdict d-none" id="remote-scan-verdict"></div>
                         </div>
                     </div>
 
@@ -764,6 +837,7 @@
     <script src="report-generator.js"></script>
     <script src="mobile-scanner.js"></script>
     <script src="laptop-scanner.js"></script>
+    <script src="remote-scanner.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
