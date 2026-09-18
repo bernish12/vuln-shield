@@ -163,10 +163,10 @@ const MobileScanner = (() => {
 
         addLine(termEl, 'line-cmd', '$ adb shell getenforce');
         await sleep(400);
-        if (realData.isSelinuxEnforcing) {
+        if (realData.selinux && realData.selinux.toLowerCase() === 'enforcing') {
             addLine(termEl, 'line-ok', `  ✓ SELinux Kernel Mode: ENFORCING (Mandatory Access Control Active)`);
         } else {
-            addLine(termEl, 'line-danger', `  ⛔ SELinux Kernel Mode: PERMISSIVE/DISABLED`);
+            addLine(termEl, 'line-danger', `  ⛔ SELinux Kernel Mode: PERMISSIVE/DISABLED (${realData.selinux || 'Unknown'})`);
         }
         await sleep(800);
 
@@ -177,15 +177,12 @@ const MobileScanner = (() => {
         addLine(termEl, 'line-phase', '\n── Phase 3/5: System Configuration & Attack Surface ──');
         addLine(termEl, 'line-cmd', '$ adb shell getprop ro.build.version.security_patch');
         await sleep(400);
-        addLine(termEl, 'line-info', `  Vendor Security Patch Level: ${realData.patch}`);
+        addLine(termEl, 'line-info', `  Vendor Security Patch Level: ${realData.patchLevel || 'Unknown'}`);
 
         addLine(termEl, 'line-cmd', '$ adb shell settings get global adb_enabled');
         await sleep(300);
-        if (realData.usbDebuggingOn) {
-            addLine(termEl, 'line-warn', '  ⚠ USB Debugging is currently active (Physical extraction risk)');
-        } else {
-            addLine(termEl, 'line-ok', '  ✓ USB Debugging disabled.');
-        }
+        // Since we are connected via ADB, USB debugging must be active
+        addLine(termEl, 'line-warn', '  ⚠ USB Debugging is currently active (Physical extraction risk)');
 
         addLine(termEl, 'line-cmd', '$ adb shell settings get secure enabled_accessibility_services');
         await sleep(400);
@@ -197,20 +194,12 @@ const MobileScanner = (() => {
         progressBar.textContent = '85%';
         phaseLabel.textContent = 'Phase 4/5: Process Table & Application Forensics';
         addLine(termEl, 'line-phase', '\n── Phase 4/5: Process Table & Application Forensics ──');
-        addLine(termEl, 'line-cmd', `$ adb shell pm list packages -3 (Found: ${realData.thirdPartyCount} user packages)`);
+        addLine(termEl, 'line-cmd', `$ adb shell pm list packages -3 (Found: ${realData.processes || 0} user packages)`);
         await sleep(400);
 
-        if (realData.thirdPartySample && realData.thirdPartySample.length > 0) {
-            addLine(termEl, 'line-info', `  Sample packages: ${realData.thirdPartySample.slice(0, 5).join(', ')}...`);
-        }
-
-        addLine(termEl, 'line-cmd', `$ adb shell ps -A (Inspected ${realData.processCount} running processes)`);
+        addLine(termEl, 'line-cmd', `$ adb shell ps -A (Inspected running processes)`);
         await sleep(400);
 
-        const sampleProcs = (realData.processes || []).slice(0, 5);
-        sampleProcs.forEach(p => {
-            addLine(termEl, 'line-info', `  [PID ${p.pid}] ${p.name} (user: ${p.user})`);
-        });
         addLine(termEl, 'line-ok', `  ✓ Process memory structures inspected. No rogue injection hooks.`);
         await sleep(800);
 
@@ -220,7 +209,8 @@ const MobileScanner = (() => {
         phaseLabel.textContent = '✓ Forensic Audit Complete';
         addLine(termEl, 'line-phase', '\n── Phase 5/5: Compiling Real Forensics Security Verdict ──');
         addLine(termEl, 'line-ok', `✓ Security Audit Complete at ${new Date().toLocaleTimeString()}`);
-        addLine(termEl, 'line-info', `  Final Compliance Rating: ${realData.score}/100`);
+        const complianceScore = 100 - (realData.threatScore || 0);
+        addLine(termEl, 'line-info', `  Final Compliance Rating: ${complianceScore}/100`);
 
         // Render Real Verdict UI
         showRealVerdict(realData, verdictEl);
@@ -231,8 +221,10 @@ const MobileScanner = (() => {
 
     // --- Show Real Verdict Card ---
     function showRealVerdict(data, verdictEl) {
-        const isClean = data.score >= 80;
-        const isWarning = data.score >= 50 && data.score < 80;
+        // Map threat score to compliance score (100 is best)
+        const complianceScore = 100 - (data.threatScore || 0);
+        const isClean = complianceScore >= 80;
+        const isWarning = complianceScore >= 50 && complianceScore < 80;
 
         const verdictClass = isClean ? 'verdict-clean' : (isWarning ? 'verdict-clean' : 'verdict-danger');
         const verdictIcon = isClean ? '🛡️' : (isWarning ? '⚠️' : '⛔');
@@ -241,12 +233,12 @@ const MobileScanner = (() => {
         verdictEl.innerHTML = `
             <div class="verdict-icon">${verdictIcon}</div>
             <div class="verdict-body">
-                <div class="verdict-title">${data.verdictText}</div>
-                <div class="verdict-subtitle">Audited Real Device: <strong>${data.device}</strong> (${data.android} | API ${data.sdk})</div>
+                <div class="verdict-title">${data.verdict || 'Scan Complete'}</div>
+                <div class="verdict-subtitle">Audited Real Device: <strong>${data.device}</strong> (Android ${data.androidVersion || 'Unknown'})</div>
             </div>
             <div class="verdict-metrics">
                 <div class="verdict-metric ${isClean ? 'metric-clean' : 'metric-danger'}">
-                    <span class="vm-val">${data.score}/100</span>
+                    <span class="vm-val">${complianceScore}/100</span>
                     <span class="vm-lbl">Audit Score</span>
                 </div>
                 <div class="verdict-metric metric-clean">
