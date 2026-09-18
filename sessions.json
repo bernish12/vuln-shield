@@ -5,7 +5,7 @@
     "username": "bernish2004cyber",
     "role": "admin",
     "loginTime": "2026-09-18T13:17:49.455Z",
-    "lastActive": "2026-09-18T16:48:39.610Z"
+    "lastActive": "2026-09-18T16:54:29.625Z"
   },
   "ae203a0a4e8bc4e2c0d4eab79d0f5fc6": {
     "ip": "127.0.0.1",
@@ -38,5 +38,13 @@
     "role": "admin",
     "loginTime": "2026-09-18T14:09:27.668Z",
     "lastActive": "2026-09-18T14:43:41.026Z"
+  },
+  "077cf55c8316a4e68b223ab1963a94a1": {
+    "ip": "127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+    "username": "vulnshield12",
+    "role": "user",
+    "loginTime": "2026-09-18T16:49:12.360Z",
+    "lastActive": "2026-09-18T16:54:27.529Z"
   }
 }
