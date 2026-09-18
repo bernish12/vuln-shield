@@ -32,7 +32,7 @@ const GITHUB_REPO = process.env.GITHUB_REPO || ''; // format: "username/repo"
 
 const USERS = {
     'bernish2004cyber': { password: 'bernish@2004cyber08', role: 'admin' },
-    'vulnshield12': { password: 'vulnshield@12', role: 'user' }
+    'vulnshield12': { password: 'vuln@12', role: 'user' }
 };
 
 try { if (fs.existsSync(SESSIONS_FILE)) activeSessions = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8')); } catch(e) {}
@@ -522,6 +522,8 @@ async function handleApiRequest(req, res) {
             await handleMobileScan(res);
         } else if (parsedUrl === '/api/laptop/scan') {
             await handleLaptopScan(res);
+        } else if (parsedUrl === '/api/remote/scan' || parsedUrl === '/api/scan/remote-ip') {
+            await handleRemoteIpScan(body, res);
         } else {
             res.writeHead(404);
             res.end(JSON.stringify({ error: 'Endpoint Not Found' }));
@@ -3073,4 +3075,254 @@ async function handleCveLookup(body, res) {
 
     res.writeHead(200);
     res.end(JSON.stringify({ query: searchQuery, count: fallbackCves.length, cves: fallbackCves }));
+}
+
+// --------------------------------------------------------------------------
+// Remote Laptop / Host IP Spyware, Malware & Compromise Scanner
+// --------------------------------------------------------------------------
+const REMOTE_AUDIT_PORTS = [
+    { port: 4444, service: 'Metasploit Meterpreter / Reverse TCP C2', threatType: 'RAT Backdoor', category: 'danger', desc: 'Interactive reverse command shell listener detected. Attacker has root/system level control.' },
+    { port: 1177, service: 'njRAT (Bladabindi Trojan)', threatType: 'RAT Spyware', category: 'danger', desc: 'njRAT control channel active. Capable of keystroke logging, webcam spying, and credential harvesting.' },
+    { port: 1604, service: 'DarkComet RAT', threatType: 'Spyware Trojan', category: 'danger', desc: 'DarkComet surveillance beacon active on this host.' },
+    { port: 5900, service: 'VNC Remote FrameBuffer', threatType: 'Screen Surveillance', category: 'danger', desc: 'Exposed VNC desktop sharing port. Real-time screen capture and mouse hijacking possible.' },
+    { port: 5901, service: 'VNC Display :1 Remote Desktop', threatType: 'Screen Surveillance', category: 'warn', desc: 'Secondary VNC display interface open without network isolation.' },
+    { port: 445, service: 'SMB / Microsoft-DS (Port 445)', threatType: 'Exploit Vector', category: 'danger', desc: 'Direct SMB transport open. Prime target for EternalBlue (MS17-010) and WannaCry ransomware.' },
+    { port: 139, service: 'NetBIOS Session Service', threatType: 'Network Recon', category: 'warn', desc: 'NetBIOS enumeration active. Exposes internal hostnames, workgroups, and shared drives.' },
+    { port: 3389, service: 'Microsoft RDP (Remote Desktop)', threatType: 'Remote Access', category: 'warn', desc: 'Remote Desktop Protocol open. Vulnerable to brute-force credential stuffing and BlueKeep.' },
+    { port: 1337, service: 'Elite Backdoor / Hacktool Listener', threatType: 'Backdoor Shell', category: 'danger', desc: 'Known hacker bind shell listener detected on non-standard port.' },
+    { port: 31337, service: 'NetBus / Back Orifice Legacy Trojan', threatType: 'Legacy RAT', category: 'danger', desc: 'Classic trojan backdoor listener port open.' },
+    { port: 5555, service: 'Wireless ADB (Android Debug Bridge)', threatType: 'Unauthorized Debug', category: 'danger', desc: 'Unauthenticated Android/subsystem debug daemon exposed to local network.' },
+    { port: 23, service: 'Telnet Remote Shell', threatType: 'Cleartext Backdoor', category: 'danger', desc: 'Unencrypted command line protocol. All passwords and commands transmitted in cleartext.' },
+    { port: 21, service: 'FTP Service', threatType: 'Insecure Storage', category: 'warn', desc: 'Unencrypted file transfer service open on remote host.' },
+    { port: 22, service: 'SSH Remote Shell', threatType: 'Encrypted Administration', category: 'info', desc: 'Secure Shell port open. Verify public-key authentication is strictly enforced.' },
+    { port: 8080, service: 'HTTP Proxy / Web Admin / Malicious Web Shell', threatType: 'Web Backdoor', category: 'warn', desc: 'Secondary HTTP service or web management console reachable.' },
+    { port: 8888, service: 'Alternative HTTP / C2 Web Panel', threatType: 'Web Service', category: 'warn', desc: 'Custom HTTP listener port active.' }
+];
+
+function checkTcpSocket(host, port, timeoutMs = 1200) {
+    return new Promise((resolve) => {
+        const socket = new net.Socket();
+        let responded = false;
+        const done = (status) => {
+            if (responded) return;
+            responded = true;
+            try { socket.destroy(); } catch(e) {}
+            resolve({ port, status });
+        };
+
+        socket.setTimeout(timeoutMs);
+        socket.on('connect', () => done('open'));
+        socket.on('timeout', () => done('timeout'));
+        socket.on('error', (err) => {
+            if (err && err.code === 'ECONNREFUSED') {
+                done('closed');
+            } else {
+                done('unreachable');
+            }
+        });
+        socket.on('close', () => done('closed'));
+
+        try {
+            socket.connect(port, host);
+        } catch (e) {
+            done('error');
+        }
+    });
+}
+
+async function handleRemoteIpScan(body, res) {
+    const { ip, simulate } = body || {};
+    const targetIp = (ip || '').trim();
+
+    // IPv4 validation
+    const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    const isLocalhost = targetIp === 'localhost' || targetIp === '127.0.0.1';
+
+    if (!targetIp || (!ipv4Regex.test(targetIp) && !isLocalhost)) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Invalid IP address format. Please enter a valid IPv4 address (e.g., 192.168.1.50).' }));
+        return;
+    }
+
+    const isSimulation = Boolean(simulate) || targetIp === '192.168.1.105' || targetIp === '10.0.0.99';
+
+    if (isSimulation) {
+        const simFindings = [
+            {
+                port: 4444,
+                service: 'Metasploit Meterpreter / Reverse TCP C2',
+                threatType: 'RAT Backdoor',
+                severity: 'danger',
+                status: 'OPEN (ACTIVE MALWARE)',
+                details: 'Interactive reverse command shell listener detected. Attacker has root/system level remote control over the target laptop.',
+                remediation: 'Immediately terminate process on port 4444 (taskkill /F /PID) and isolate laptop from the Wi-Fi/Ethernet network.'
+            },
+            {
+                port: 1177,
+                service: 'njRAT (Bladabindi Trojan)',
+                threatType: 'RAT Spyware',
+                severity: 'danger',
+                status: 'OPEN (ACTIVE SPYWARE)',
+                details: 'njRAT surveillance control beacon active. Keylogger, live webcam streaming, and microphone interception payload present.',
+                remediation: 'Run a full malware scan, delete %APPDATA% dropped executable, and inspect Windows Startup run keys.'
+            },
+            {
+                port: 5900,
+                service: 'VNC Remote FrameBuffer',
+                threatType: 'Screen Surveillance',
+                severity: 'danger',
+                status: 'OPEN (UNAUTHORIZED DESKTOP)',
+                details: 'Unauthenticated VNC desktop sharing port open. Allows covert real-time desktop monitoring and mouse takeover.',
+                remediation: 'Disable unauthenticated VNC services and block inbound port 5900 in Windows Defender Firewall.'
+            },
+            {
+                port: 445,
+                service: 'SMB / Microsoft-DS',
+                threatType: 'Exploit Vector',
+                severity: 'danger',
+                status: 'EXPOSED (MS17-010 VULNERABLE)',
+                details: 'SMBv1 protocol exposed directly to network. High risk of EternalBlue remote code execution and lateral worm infection.',
+                remediation: 'Disable SMBv1 (Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol) and update Windows.'
+            },
+            {
+                port: 3389,
+                service: 'Microsoft RDP',
+                threatType: 'Remote Access',
+                severity: 'warn',
+                status: 'OPEN (NETWORK EXPOSED)',
+                details: 'Remote Desktop Protocol listener is reachable across LAN. Susceptible to brute-force credential stuffing attacks.',
+                remediation: 'Enable Network Level Authentication (NLA) or restrict RDP access through VPN only.'
+            }
+        ];
+
+        const responsePayload = {
+            targetIp,
+            isOnline: true,
+            isSimulation: true,
+            responseTimeMs: 3.8,
+            hostname: `COMPROMISED-HOST-${targetIp.replace(/\./g, '-')}.local`,
+            osGuess: 'Windows 11 / x64 Host',
+            threatScore: 22,
+            verdict: 'CRITICAL COMPROMISED',
+            verdictClass: 'danger',
+            summary: 'TARGET LAPTOP IS ACTIVELY COMPROMISED. Found 4 high-severity malicious backdoors, 1 active spyware beacon (njRAT), and 1 remote command shell (Meterpreter).',
+            openPortsCount: 5,
+            threatCount: 4,
+            findings: simFindings,
+            remediationSteps: [
+                '1. ISOLATE IMMEDIATELY: Disconnect the infected laptop from Wi-Fi and unplug network cables to stop data exfiltration.',
+                '2. KILL ACTIVE LISTENERS: Run "netstat -ano | findstr :4444" to find process ID, then "taskkill /F /PID <PID>".',
+                '3. FIREWALL BLOCK: Block inbound ports 4444, 1177, 5900, 445 via Windows Advanced Firewall.',
+                '4. MALWARE REMOVAL: Boot into Safe Mode and run Microsoft Defender Offline Scan or Malwarebytes.',
+                '5. CREDENTIAL RESET: Force password reset for all user and admin accounts on the compromised system.'
+            ],
+            scannedAt: new Date().toISOString()
+        };
+
+        res.writeHead(200);
+        res.end(JSON.stringify(responsePayload));
+        return;
+    }
+
+    // Live Probe Mode
+    const startTime = Date.now();
+    const probeResults = await Promise.all(
+        REMOTE_AUDIT_PORTS.map(p => checkTcpSocket(targetIp, p.port, 1200))
+    );
+    const duration = Date.now() - startTime;
+
+    const openPorts = probeResults.filter(r => r.status === 'open');
+    const isOnline = openPorts.length > 0 || probeResults.some(r => r.status === 'closed');
+
+    let score = 100;
+    const findings = [];
+    let threatCount = 0;
+
+    for (const r of probeResults) {
+        const portInfo = REMOTE_AUDIT_PORTS.find(p => p.port === r.port);
+        if (!portInfo) continue;
+
+        if (r.status === 'open') {
+            if (portInfo.category === 'danger') {
+                score -= 25;
+                threatCount++;
+                findings.push({
+                    port: r.port,
+                    service: portInfo.service,
+                    threatType: portInfo.threatType,
+                    severity: 'danger',
+                    status: 'OPEN (CRITICAL THREAT)',
+                    details: portInfo.desc,
+                    remediation: `Close port ${r.port} immediately and check running processes.`
+                });
+            } else if (portInfo.category === 'warn') {
+                score -= 10;
+                findings.push({
+                    port: r.port,
+                    service: portInfo.service,
+                    threatType: portInfo.threatType,
+                    severity: 'warn',
+                    status: 'OPEN (RISK EXPOSURE)',
+                    details: portInfo.desc,
+                    remediation: `Restrict access to port ${r.port} or require VPN tunnel.`
+                });
+            } else {
+                findings.push({
+                    port: r.port,
+                    service: portInfo.service,
+                    threatType: portInfo.threatType,
+                    severity: 'info',
+                    status: 'OPEN (INFORMATIONAL)',
+                    details: portInfo.desc,
+                    remediation: `Ensure strong passwords and key-based authentication.`
+                });
+            }
+        }
+    }
+
+    if (score < 0) score = 0;
+
+    let verdict = 'CLEAN';
+    let verdictClass = 'success';
+    let summary = 'Target laptop has no known spyware or backdoor ports listening. Host firewall is actively protecting inbound sockets.';
+
+    if (threatCount > 0 || score <= 40) {
+        verdict = 'CRITICAL COMPROMISED';
+        verdictClass = 'danger';
+        summary = `High risk! Detected ${threatCount} active malicious or spyware backdoors listening on target IP ${targetIp}.`;
+    } else if (score < 85) {
+        verdict = 'MODERATE EXPOSURE';
+        verdictClass = 'warn';
+        summary = `Target IP ${targetIp} has open management ports exposed to the network.`;
+    }
+
+    const responsePayload = {
+        targetIp,
+        isOnline,
+        isSimulation: false,
+        responseTimeMs: duration,
+        hostname: `${targetIp}.local`,
+        osGuess: isOnline ? 'Network Active Host' : 'Host Offline or Stealth Firewall',
+        threatScore: score,
+        verdict,
+        verdictClass,
+        summary,
+        openPortsCount: openPorts.length,
+        threatCount,
+        findings,
+        remediationSteps: threatCount > 0 ? [
+            `1. Inspect active connections on target laptop: netstat -ano`,
+            `2. Terminate unauthorized listeners on detected ports (${openPorts.map(p => p.port).join(', ')})`,
+            `3. Enable Windows Defender Firewall Inbound Rules to drop unsolicited traffic`,
+            `4. Perform full antivirus and anti-rootkit scan`
+        ] : [
+            '1. Maintain active Host Firewall with default inbound drop policy',
+            '2. Keep OS and all network service binaries patched to latest versions',
+            '3. Continue routine network vulnerability assessments'
+        ],
+        scannedAt: new Date().toISOString()
+    };
+
+    res.writeHead(200);
+    res.end(JSON.stringify(responsePayload));
 }
