@@ -364,6 +364,10 @@ const RemoteScanner = (() => {
 
         verdictEl.appendChild(findingsDiv);
         verdictEl.classList.remove('d-none');
+
+        // Save to localStorage for PDF Report Generation
+        localStorage.setItem('vulnshield_remote_scan', JSON.stringify(data));
+        localStorage.setItem('vulnshield_latest_scan', 'remote');
     }
 
     function resetScan() {
