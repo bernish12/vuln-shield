@@ -1249,37 +1249,48 @@ window.closeAiModal = function() {
 window.switchDeviceMode = function(mode) {
     const laptopSection = document.getElementById('section-laptop-audit');
     const mobileSection = document.getElementById('section-mobile-audit');
+    const remoteSection = document.getElementById('section-remote-audit');
     const btnLaptop = document.getElementById('toggle-btn-laptop');
     const btnMobile = document.getElementById('toggle-btn-mobile');
+    const btnRemote = document.getElementById('toggle-btn-remote');
+
+    // Reset all buttons
+    [btnLaptop, btnMobile, btnRemote].forEach(b => {
+        if (b) {
+            b.style.background = 'transparent';
+            b.style.color = 'var(--text-primary)';
+            b.className = 'btn btn-outline';
+        }
+    });
+
+    // Hide all sections
+    if (laptopSection) laptopSection.classList.add('d-none');
+    if (mobileSection) mobileSection.classList.add('d-none');
+    if (remoteSection) remoteSection.classList.add('d-none');
 
     if (mode === 'laptop') {
         if (laptopSection) laptopSection.classList.remove('d-none');
-        if (mobileSection) mobileSection.classList.add('d-none');
         if (btnLaptop) {
             btnLaptop.style.background = 'linear-gradient(135deg, #00ff88, #00f0ff)';
             btnLaptop.style.color = '#000';
             btnLaptop.className = 'btn btn-primary';
         }
-        if (btnMobile) {
-            btnMobile.style.background = 'transparent';
-            btnMobile.style.color = 'var(--text-primary)';
-            btnMobile.className = 'btn btn-outline';
-        }
-    } else {
-        if (laptopSection) laptopSection.classList.add('d-none');
+    } else if (mode === 'mobile') {
         if (mobileSection) mobileSection.classList.remove('d-none');
         if (btnMobile) {
             btnMobile.style.background = 'linear-gradient(135deg, #00d2ff, #00f0ff)';
             btnMobile.style.color = '#000';
             btnMobile.className = 'btn btn-primary';
         }
-        if (btnLaptop) {
-            btnLaptop.style.background = 'transparent';
-            btnLaptop.style.color = 'var(--text-primary)';
-            btnLaptop.className = 'btn btn-outline';
-        }
         if (typeof MobileScanner !== 'undefined') {
             MobileScanner.checkDeviceStatus();
+        }
+    } else if (mode === 'remote') {
+        if (remoteSection) remoteSection.classList.remove('d-none');
+        if (btnRemote) {
+            btnRemote.style.background = 'linear-gradient(135deg, #ff0055, #ffbb33)';
+            btnRemote.style.color = '#fff';
+            btnRemote.className = 'btn btn-primary';
         }
     }
 };
