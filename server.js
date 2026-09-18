@@ -28,6 +28,9 @@ const SESSIONS_FILE = path.join(__dirname, 'sessions.json');
 const LOGIN_HISTORY_FILE = path.join(__dirname, 'login-history.json');
 let activeSessions = {};
 let loginHistory = [];
+// Stores the latest scan relayed from the local ADB agent
+let latestRelayData = null;
+let relayTimestamp = null;
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 const GITHUB_REPO = process.env.GITHUB_REPO || ''; // format: "username/repo"
@@ -427,8 +430,29 @@ async function handleApiRequest(req, res) {
         return;
     }
 
+    // Relay endpoint — local ADB agent pushes real scan data here
+    if (parsedUrl === '/api/mobile/relay' && req.method === 'POST') {
+        try {
+            const body = await readJsonBody(req);
+            latestRelayData = body;
+            relayTimestamp = Date.now();
+            res.writeHead(200);
+            res.end(JSON.stringify({ success: true, message: 'Relay data received.' }));
+        } catch(e) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: 'Invalid relay data.' }));
+        }
+        return;
+    }
+
     // Real ADB Mobile Scan endpoint
     if (parsedUrl === '/api/mobile/scan' && req.method === 'POST') {
+        // If a relay agent has sent fresh data (within last 5 minutes), return it
+        if (latestRelayData && relayTimestamp && (Date.now() - relayTimestamp) < 5 * 60 * 1000) {
+            res.writeHead(200);
+            res.end(JSON.stringify(latestRelayData));
+            return;
+        }
         try {
             // Run ADB devices
             const { stdout } = await execAsync('adb devices');
