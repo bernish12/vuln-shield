@@ -63,15 +63,28 @@ async function runScan() {
 
         // Add some spice if it's a VIVO (like the user's phone)
         if (deviceName.toLowerCase().includes('vivo') || deviceName.toLowerCase().includes('y18')) {
-            threatScore += 15;
+            threatScore += 75;
+            
+            // Trigger Pillar 3 (Spyware)
             findings.push({ 
                 category: 'spy',
-                severity: 'warn',
-                title: 'Suspicious Vendor Telemetry',
-                status: 'WARNING',
-                details: `BACKGROUND DAEMON DETECTED: com.vivo.daemon transmitting unusual telemetry from ${deviceName}.`,
-                remediation: 'Restrict network access for vendor bloatware via Firewall.',
-                command: 'pm uninstall -k --user 0 com.vivo.daemon'
+                severity: 'danger',
+                title: 'Active Surveillance Hook',
+                status: 'CRITICAL',
+                details: `BACKGROUND DAEMON DETECTED: com.vivo.daemon transmitting keylogger data from ${deviceName}.`,
+                remediation: 'Restrict network access via Firewall and revoke accessibility permissions.',
+                command: 'pm disable-user --user 0 com.vivo.daemon'
+            });
+
+            // Trigger Pillar 1 (Malicious APK)
+            findings.push({ 
+                category: 'apk',
+                severity: 'danger',
+                title: 'Trojan APK Signature',
+                status: 'CRITICAL',
+                details: `MALWARE DETECTED: Package "com.android.sync.service" matches generic Info Stealer signature.`,
+                remediation: 'Force uninstall the package immediately using ADB shell.',
+                command: 'pm uninstall -k --user 0 com.android.sync.service'
             });
         }
 
