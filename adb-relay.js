@@ -23,8 +23,8 @@ console.log('⏳ Listening for ANY USB Device Connection...\n');
 
 async function detectUsbDevice() {
     try {
-        // Query Windows Plug & Play devices directly (Bypasses need for ADB/USB Debugging!)
-        const psCommand = `Get-PnpDevice -Class 'WPD' | Select-Object FriendlyName | ConvertTo-Json`;
+        // Query Windows Plug & Play devices directly
+        const psCommand = `Get-PnpDevice -Class 'WPD' | Select-Object FriendlyName, InstanceId | ConvertTo-Json`;
         const { stdout } = await execAsync(`powershell -Command "${psCommand}"`);
         
         if (!stdout || stdout.trim() === '') return null;
@@ -32,9 +32,10 @@ async function detectUsbDevice() {
         const devices = JSON.parse(stdout);
         const deviceList = Array.isArray(devices) ? devices : [devices];
         
-        // Find the first device that looks like a phone (not a drive letter like F:\)
+        // Find the first real USB mobile device (InstanceId starts with USB\)
+        // Ignore internal storage volumes and USB drives (InstanceId starts with SWD\)
         for (const dev of deviceList) {
-            if (dev.FriendlyName && !dev.FriendlyName.includes(':\\')) {
+            if (dev.FriendlyName && dev.InstanceId && dev.InstanceId.startsWith('USB\\')) {
                 return dev.FriendlyName.trim();
             }
         }
