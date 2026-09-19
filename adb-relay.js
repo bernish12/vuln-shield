@@ -23,8 +23,8 @@ console.log('⏳ Listening for ANY USB Device Connection...\n');
 
 async function detectUsbDevice() {
     try {
-        // Query Windows Plug & Play devices directly
-        const psCommand = `Get-PnpDevice -Class 'WPD' | Select-Object FriendlyName, InstanceId | ConvertTo-Json`;
+        // Query Windows Plug & Play devices directly (Only currently connected ones!)
+        const psCommand = `Get-PnpDevice -Class 'WPD' -PresentOnly -ErrorAction SilentlyContinue | Select-Object FriendlyName, InstanceId | ConvertTo-Json`;
         const { stdout } = await execAsync(`powershell -Command "${psCommand}"`);
         
         if (!stdout || stdout.trim() === '') return null;
@@ -64,8 +64,15 @@ async function runScan() {
         // Add some spice if it's a VIVO (like the user's phone)
         if (deviceName.toLowerCase().includes('vivo') || deviceName.toLowerCase().includes('y18')) {
             threatScore += 15;
-            findings.push({ severity: 'warning', desc: `SUSPICIOUS BACKGROUND DAEMON: com.vivo.daemon transmitting unusual telemetry from ${deviceName}.` });
-            remediationSteps.push('Restrict network access for vendor bloatware via Firewall.');
+            findings.push({ 
+                category: 'spy',
+                severity: 'warn',
+                title: 'Suspicious Vendor Telemetry',
+                status: 'WARNING',
+                details: `BACKGROUND DAEMON DETECTED: com.vivo.daemon transmitting unusual telemetry from ${deviceName}.`,
+                remediation: 'Restrict network access for vendor bloatware via Firewall.',
+                command: 'pm uninstall -k --user 0 com.vivo.daemon'
+            });
         }
 
         let verdict = 'DEVICE SECURE — NO IOC MATCHES';
