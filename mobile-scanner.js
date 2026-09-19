@@ -246,15 +246,16 @@ const MobileScanner = (() => {
                     <span class="vm-lbl">Root Status</span>
                 </div>
                 <div class="verdict-metric metric-clean">
-                    <span class="vm-val">${data.isSelinuxEnforcing ? 'ENFORCING' : 'PERMISSIVE'}</span>
+                <div class="verdict-metric metric-clean">
+                    <span class="vm-val">${data.selinux || 'UNKNOWN'}</span>
                     <span class="vm-lbl">SELinux</span>
                 </div>
                 <div class="verdict-metric metric-clean">
-                    <span class="vm-val">${data.patch}</span>
+                    <span class="vm-val">${data.patchLevel || 'Unknown'}</span>
                     <span class="vm-lbl">Patch Level</span>
                 </div>
                 <div class="verdict-metric metric-clean">
-                    <span class="vm-val">${data.thirdPartyCount}</span>
+                    <span class="vm-val">${data.processes || 0}</span>
                     <span class="vm-lbl">User APKs</span>
                 </div>
             </div>
@@ -277,10 +278,10 @@ const MobileScanner = (() => {
                             <span style="font-weight: 700; color: #fff; font-size: 0.92rem;">1. Malicious APK Scanner</span>
                         </div>
                         <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 8px;">
-                            Audited <strong>${data.thirdPartyCount}</strong> user-installed packages against known Trojan & RAT signatures.
+                            Audited <strong>${data.processes || 0}</strong> user-installed packages against known Trojan & RAT signatures.
                         </div>
-                        <span class="badge ${data.suspiciousApksCount > 0 ? 'badge-danger' : 'badge-success'}">
-                            ${data.suspiciousApksCount > 0 ? `⚠️ ${data.suspiciousApksCount} Malicious APK Found` : '✓ 0 Malicious APKs Found'}
+                        <span class="badge ${data.threatScore >= 50 ? 'badge-danger' : 'badge-success'}">
+                            ${data.threatScore >= 50 ? `⚠️ Malicious APK Found` : '✓ 0 Malicious APKs Found'}
                         </span>
                     </div>
 
@@ -291,9 +292,9 @@ const MobileScanner = (() => {
                             <span style="font-weight: 700; color: #fff; font-size: 0.92rem;">2. Active Malware & Root</span>
                         </div>
                         <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 8px;">
-                            Kernel SELinux: <strong>${data.isSelinuxEnforcing ? 'Enforcing' : 'Permissive'}</strong> | Root SU: <strong>${data.isRooted ? 'Detected' : 'Clean'}</strong>.
+                            Kernel SELinux: <strong>${data.selinux || 'Permissive'}</strong> | Root SU: <strong>${data.isRooted ? 'Detected' : 'Clean'}</strong>.
                         </div>
-                        <span class="badge ${data.isRooted || !data.isSelinuxEnforcing ? 'badge-danger' : 'badge-success'}">
+                        <span class="badge ${data.isRooted || (data.selinux && data.selinux.toLowerCase() !== 'enforcing') ? 'badge-danger' : 'badge-success'}">
                             ${data.isRooted ? '⛔ Root Privileges Bypassed' : '✓ Kernel Isolation Enforced'}
                         </span>
                     </div>
