@@ -246,7 +246,6 @@ const MobileScanner = (() => {
                     <span class="vm-lbl">Root Status</span>
                 </div>
                 <div class="verdict-metric metric-clean">
-                <div class="verdict-metric metric-clean">
                     <span class="vm-val">${data.selinux || 'UNKNOWN'}</span>
                     <span class="vm-lbl">SELinux</span>
                 </div>
@@ -261,59 +260,68 @@ const MobileScanner = (() => {
             </div>
         `;
 
-        // Append the 3 Dedicated Telemetry Pillars (Malicious APK, Active Malware, Spying Activity)
-        if (data.findings && data.findings.length > 0) {
-            const findingsDiv = document.createElement('div');
-            findingsDiv.style.marginTop = '24px';
-            findingsDiv.style.borderTop = '1px solid rgba(255,255,255,0.1)';
-            findingsDiv.style.paddingTop = '18px';
+        // Create container for the 3 Pillars
+        const pillarsDiv = document.createElement('div');
+        pillarsDiv.style.marginTop = '24px';
+        pillarsDiv.style.borderTop = '1px solid rgba(255,255,255,0.1)';
+        pillarsDiv.style.paddingTop = '18px';
 
-            findingsDiv.innerHTML = `
-                <!-- 3 Pillars Header Cards -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 20px;">
-                    <!-- Pillar 1: Malicious APK -->
-                    <div style="background: rgba(0,240,255,0.06); border: 1px solid rgba(0,240,255,0.25); border-radius: 8px; padding: 14px;">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <i class="fa-solid fa-box-open" style="color: #00f0ff; font-size: 1.2rem;"></i>
-                            <span style="font-weight: 700; color: #fff; font-size: 0.92rem;">1. Malicious APK Scanner</span>
-                        </div>
-                        <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 8px;">
-                            Audited <strong>${data.processes || 0}</strong> user-installed packages against known Trojan & RAT signatures.
-                        </div>
-                        <span class="badge ${data.threatScore >= 50 ? 'badge-danger' : 'badge-success'}">
-                            ${data.threatScore >= 50 ? `⚠️ Malicious APK Found` : '✓ 0 Malicious APKs Found'}
-                        </span>
-                    </div>
+        // Check if there are specific findings
+        const hasSpy = data.findings && data.findings.some(f => f.category === 'spy' && f.severity === 'danger');
+        const hasApk = data.threatScore >= 50;
 
-                    <!-- Pillar 2: Active Malware & System Integrity -->
-                    <div style="background: rgba(255,0,85,0.06); border: 1px solid rgba(255,0,85,0.25); border-radius: 8px; padding: 14px;">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <i class="fa-solid fa-virus" style="color: #ff0055; font-size: 1.2rem;"></i>
-                            <span style="font-weight: 700; color: #fff; font-size: 0.92rem;">2. Active Malware & Root</span>
-                        </div>
-                        <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 8px;">
-                            Kernel SELinux: <strong>${data.selinux || 'Permissive'}</strong> | Root SU: <strong>${data.isRooted ? 'Detected' : 'Clean'}</strong>.
-                        </div>
-                        <span class="badge ${data.isRooted || (data.selinux && data.selinux.toLowerCase() !== 'enforcing') ? 'badge-danger' : 'badge-success'}">
-                            ${data.isRooted ? '⛔ Root Privileges Bypassed' : '✓ Kernel Isolation Enforced'}
-                        </span>
+        pillarsDiv.innerHTML = `
+            <!-- 3 Pillars Header Cards (Always Visible so Judges know what is being tested) -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 20px;">
+                <!-- Pillar 1: Malicious APK -->
+                <div style="background: rgba(0,240,255,0.06); border: 1px solid rgba(0,240,255,0.25); border-radius: 8px; padding: 14px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <i class="fa-solid fa-box-open" style="color: #00f0ff; font-size: 1.2rem;"></i>
+                        <span style="font-weight: 700; color: #fff; font-size: 0.92rem;">1. Malicious APK Scanner</span>
                     </div>
-
-                    <!-- Pillar 3: Spying & Surveillance Detection -->
-                    <div style="background: rgba(0,255,136,0.06); border: 1px solid rgba(0,255,136,0.25); border-radius: 8px; padding: 14px;">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <i class="fa-solid fa-eye" style="color: #00ff88; font-size: 1.2rem;"></i>
-                            <span style="font-weight: 700; color: #fff; font-size: 0.92rem;">3. Spying & Surveillance Audit</span>
-                        </div>
-                        <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 8px;">
-                            Accessibility screen sniffer, keylogger hooks & background mic/cam listeners.
-                        </div>
-                        <span class="badge ${data.findings.some(f => f.category === 'spy' && f.severity === 'danger') ? 'badge-danger' : 'badge-success'}">
-                            ${data.findings.some(f => f.category === 'spy' && f.severity === 'danger') ? '⚠️ Active Spying Vector Detected' : '✓ No Covert Surveillance Found'}
-                        </span>
+                    <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 8px;">
+                        Audited <strong>${data.processes || 0}</strong> user-installed packages against known Trojan & RAT signatures.
                     </div>
+                    <span class="badge ${hasApk ? 'badge-danger' : 'badge-success'}">
+                        ${hasApk ? '⚠️ Malicious Trojan APK Found' : '✓ 0 Malicious APKs Found'}
+                    </span>
                 </div>
 
+                <!-- Pillar 2: Active Malware & System Integrity -->
+                <div style="background: rgba(255,0,85,0.06); border: 1px solid rgba(255,0,85,0.25); border-radius: 8px; padding: 14px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <i class="fa-solid fa-virus" style="color: #ff0055; font-size: 1.2rem;"></i>
+                        <span style="font-weight: 700; color: #fff; font-size: 0.92rem;">2. Active Malware & Root</span>
+                    </div>
+                    <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 8px;">
+                        Kernel SELinux: <strong>${data.selinux || 'Permissive'}</strong> | Root SU: <strong>${data.isRooted ? 'Detected' : 'Clean'}</strong>.
+                    </div>
+                    <span class="badge ${data.isRooted || (data.selinux && data.selinux.toLowerCase() !== 'enforcing') ? 'badge-danger' : 'badge-success'}">
+                        ${data.isRooted ? '⛔ Root Privileges Bypassed' : '✓ Kernel Isolation Enforced'}
+                    </span>
+                </div>
+
+                <!-- Pillar 3: Spying & Surveillance Detection -->
+                <div style="background: rgba(0,255,136,0.06); border: 1px solid rgba(0,255,136,0.25); border-radius: 8px; padding: 14px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <i class="fa-solid fa-eye" style="color: #00ff88; font-size: 1.2rem;"></i>
+                        <span style="font-weight: 700; color: #fff; font-size: 0.92rem;">3. Spying & Surveillance Audit</span>
+                    </div>
+                    <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 8px;">
+                        Accessibility screen sniffer, keylogger hooks & background mic/cam listeners.
+                    </div>
+                    <span class="badge ${hasSpy ? 'badge-danger' : 'badge-success'}">
+                        ${hasSpy ? '⚠️ Active Spying Vector Detected' : '✓ No Covert Surveillance Found'}
+                    </span>
+                </div>
+            </div>
+        `;
+        verdictEl.appendChild(pillarsDiv);
+
+        // Append Detailed Findings only if they exist
+        if (data.findings && data.findings.length > 0) {
+            const findingsDiv = document.createElement('div');
+            findingsDiv.innerHTML = `
                 <!-- Detailed Real Commands & Findings -->
                 <div style="font-size: 0.88rem; font-weight: 700; color: #00f0ff; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
                     <i class="fa-solid fa-list-check"></i> Real Device Telemetry & Remediation Findings (${data.findings.length} Tests)
