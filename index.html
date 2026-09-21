@@ -514,10 +514,10 @@
 
                     <!-- Mode Toggle: Laptop vs Mobile Forensics vs Remote IP Audit -->
                     <div class="device-mode-toggle" style="display: flex; gap: 14px; margin-bottom: 24px; flex-wrap: wrap;">
-                        <button class="btn btn-primary" id="toggle-btn-laptop" onclick="switchDeviceMode('laptop')" style="padding: 12px 24px; font-weight: 700; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 10px; border-radius: 10px; cursor: pointer; background: linear-gradient(135deg, #00ff88, #00f0ff); color: #000; border: none;">
+                        <button class="btn btn-outline d-none" id="toggle-btn-laptop" onclick="switchDeviceMode('laptop')" style="padding: 12px 24px; font-weight: 700; font-size: 0.95rem; display: none; align-items: center; gap: 10px; border-radius: 10px; cursor: pointer; background: linear-gradient(135deg, #00ff88, #00f0ff); color: #000; border: none;">
                             <i class="fa-solid fa-laptop-code"></i> 1. Host Laptop Forensics
                         </button>
-                        <button class="btn btn-outline" id="toggle-btn-mobile" onclick="switchDeviceMode('mobile')" style="padding: 12px 24px; font-weight: 700; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 10px; border-radius: 10px; cursor: pointer;">
+                        <button class="btn btn-primary" id="toggle-btn-mobile" onclick="switchDeviceMode('mobile')" style="padding: 12px 24px; font-weight: 700; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 10px; border-radius: 10px; cursor: pointer;">
                             <i class="fa-solid fa-mobile-screen-button"></i> 2. Mobile Phone Forensics
                         </button>
                         <button class="btn btn-outline" id="toggle-btn-remote" onclick="switchDeviceMode('remote')" style="padding: 12px 24px; font-weight: 700; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 10px; border-radius: 10px; cursor: pointer;">
@@ -526,7 +526,7 @@
                     </div>
 
                     <!-- ===== 1. HOST LAPTOP DEEP FORENSICS SCANNER ===== -->
-                    <div class="mob-scan-section" id="section-laptop-audit" style="margin-bottom: 30px;">
+                    <div class="mob-scan-section d-none" id="section-laptop-audit" style="margin-bottom: 30px;">
                         <div class="mob-scan-header">
                             <div>
                                 <div class="mob-scan-title">
@@ -565,7 +565,7 @@
                     </div>
 
                     <!-- ===== 2. MOBILE DEEP FORENSICS SCANNER ===== -->
-                    <div class="mob-scan-section d-none" id="section-mobile-audit">
+                    <div class="mob-scan-section" id="section-mobile-audit">
                         <div class="mob-scan-header">
                             <div>
                                 <div class="mob-scan-title">
