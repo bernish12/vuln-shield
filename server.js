@@ -3095,7 +3095,6 @@ function handleDeviceScan(body, res) {
 // --------------------------------------------------------------------------
 // Category 5: Subdomain Reconnaissance & Port Audit Engine
 // --------------------------------------------------------------------------
-const net = require('net');
 
 async function handleReconScan(body, res) {
     const { domain } = body || {};
