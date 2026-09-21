@@ -1758,11 +1758,13 @@ async function queryDnsDs(domain) {
     }
 }
 
-function getSecurityHeaders(domain, redirectsLeft = 3) {
+function getSecurityHeaders(domain, useHttp = false, redirectsLeft = 3) {
     return new Promise((resolve) => {
+        const protocol = useHttp ? http : https;
+        const port = useHttp ? 80 : 443;
         const options = {
             hostname: domain,
-            port: 443,
+            port: port,
             path: '/',
             method: 'GET',
             timeout: 6000,
@@ -1774,7 +1776,7 @@ function getSecurityHeaders(domain, redirectsLeft = 3) {
             }
         };
 
-        const req = https.request(options, (res) => {
+        const req = protocol.request(options, (res) => {
             // Follow redirects (301, 302, 307, 308) up to redirectsLeft times
             if ([301, 302, 307, 308].includes(res.statusCode) && res.headers['location'] && redirectsLeft > 0) {
                 try {
@@ -2039,75 +2041,90 @@ async function handleWebScan(body, res) {
             });
         }
     } else {
-        logs.push(`[HTTP-ERROR] Could not complete live header request: ${headerAudit.error}. Falling back to header audit simulation.`);
+        logs.push(`[HTTP-WARN] HTTPS header request failed: ${headerAudit.error}. Retrying over HTTP...`);
         
-        // Fallback simulated logic for demo targets to maintain usability even if local connection is offline
-        const domainsHeaderSettings = {
-            'google.com': { hsts: true, csp: true, xframe: true, cors: false },
-            'github.com': { hsts: true, csp: true, xframe: true, cors: false },
-            'default': { hsts: false, csp: false, xframe: false, cors: true }
-        };
-        const config = domainsHeaderSettings[cleanDomain] || domainsHeaderSettings['default'];
-        
-        if (config.hsts) {
-            findings.push({
-                severity: 'passed',
-                title: 'Strict-Transport-Security (HSTS) Active',
-                desc: 'Web server forces secure SSL/TLS communication, preventing protocol downgrade attempts (SSL Stripping).'
-            });
+        // Real retry over HTTP instead of fake fallback
+        const httpRetry = await getSecurityHeaders(cleanDomain, true); // retry with HTTP
+        if (httpRetry.success) {
+            const headers = httpRetry.headers;
+            // HSTS
+            if (headers['strict-transport-security']) {
+                findings.push({ severity: 'passed', title: 'Strict-Transport-Security (HSTS) Active', desc: `HSTS is active: \`${headers['strict-transport-security']}\`. Browser sessions are forced to SSL/TLS.` });
+            } else {
+                findings.push({ severity: 'high', title: 'HSTS Header Missing', desc: 'HTTP Strict Transport Security (HSTS) is not enabled on the server.', solution: 'Add header: `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`' });
+            }
+            // CSP
+            if (headers['content-security-policy']) {
+                findings.push({ severity: 'passed', title: 'Content-Security-Policy (CSP) Active', desc: 'CSP policy restricting browser executable assets source locations resolved.' });
+            } else {
+                findings.push({ severity: 'high', title: 'Content-Security-Policy (CSP) Missing', desc: 'No Content-Security-Policy header is served, elevating XSS vulnerability exposure.', solution: 'Define a robust CSP header: `Content-Security-Policy: default-src \'self\';`' });
+            }
+            // X-Frame-Options
+            if (headers['x-frame-options'] || (headers['content-security-policy'] && headers['content-security-policy'].includes('frame-ancestors'))) {
+                findings.push({ severity: 'passed', title: 'Clickjacking Protection Enabled', desc: 'X-Frame-Options or CSP frame-ancestors header is defined.' });
+            } else {
+                findings.push({ severity: 'warning', title: 'Clickjacking Protection (X-Frame-Options) Missing', desc: 'X-Frame-Options header is absent, allowing framing of target pages.', solution: 'Add headers: `X-Frame-Options: DENY` or `X-Frame-Options: SAMEORIGIN`.' });
+            }
+            logs.push(`[HTTP-SUCCESS] Live header audit completed over HTTP fallback.`);
         } else {
-            findings.push({
-                severity: 'high',
-                title: 'HSTS Header Missing',
-                desc: 'HTTP Strict Transport Security (HSTS) is not enabled on the server. Redirections can bypass secure lines.',
-                solution: 'Add header: `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`'
-            });
-        }
-
-        if (config.csp) {
-            findings.push({
-                severity: 'passed',
-                title: 'Content-Security-Policy (CSP) Active',
-                desc: 'CSP policies restrict browser script execution limits to trusted local assets.'
-            });
-        } else {
-            findings.push({
-                severity: 'high',
-                title: 'Content-Security-Policy (CSP) Missing',
-                desc: 'No Content-Security-Policy header is served, elevating XSS vulnerability exposure.',
-                solution: 'Define a robust CSP header: `Content-Security-Policy: default-src \'self\';`'
-            });
-        }
-
-        if (config.xframe) {
-            findings.push({
-                severity: 'passed',
-                title: 'Clickjacking Protection Enabled',
-                desc: 'The `X-Frame-Options` or CSP `frame-ancestors` header is defined, preventing unauthorized frame embedding.'
-            });
-        } else {
-            findings.push({
-                severity: 'warning',
-                title: 'Clickjacking Protection (X-Frame-Options) Missing',
-                desc: 'X-Frame-Options header is absent, allowing framing of target pages.',
-                solution: 'Add headers: `X-Frame-Options: DENY` or `X-Frame-Options: SAMEORIGIN`.'
-            });
+            logs.push(`[HTTP-ERROR] Both HTTPS and HTTP header requests failed. Target may be unreachable.`);
+            findings.push({ severity: 'warning', title: 'Security Headers Audit Failed', desc: `Could not reach ${cleanDomain} over HTTPS or HTTP to audit security headers. The server may be offline or blocking automated requests.`, solution: 'Verify the domain is online and accessible. Try again later.' });
         }
     }
 
-    // 5. Port check simulation
-    logs.push(`[PORTS-SCAN] Initiating surface ports audit...`);
-    logs.push(`[PORTS-SCAN] Checking Port 80 (HTTP) -> OPEN`);
-    logs.push(`[PORTS-SCAN] Checking Port 443 (HTTPS) -> OPEN`);
-    logs.push(`[PORTS-SCAN] Checking Port 21 (FTP) -> CLOSED`);
-    logs.push(`[PORTS-SCAN] Checking Port 22 (SSH) -> CLOSED`);
-    logs.push(`[PORTS-SCAN] Checking Port 3389 (RDP) -> CLOSED`);
+    // 5. Real TCP Port Scan using net.Socket
+    logs.push(`[PORTS-SCAN] Initiating real TCP port scan on ${cleanDomain}...`);
+    const portsToScan = [
+        { port: 80, name: 'HTTP' },
+        { port: 443, name: 'HTTPS' },
+        { port: 21, name: 'FTP' },
+        { port: 22, name: 'SSH' },
+        { port: 3389, name: 'RDP' },
+        { port: 8080, name: 'HTTP-ALT' },
+        { port: 3306, name: 'MySQL' },
+        { port: 8443, name: 'HTTPS-ALT' }
+    ];
 
-    findings.push({
-        severity: 'passed',
-        title: 'Critical Management Ports Closed',
-        desc: 'Host system port audit indicates management interfaces like SSH (22), Telnet (23), and RDP (3389) are closed, mitigating unauthorized control entry.'
-    });
+    const scanPort = (host, port, timeout = 3000) => {
+        return new Promise((resolve) => {
+            const socket = new net.Socket();
+            socket.setTimeout(timeout);
+            socket.on('connect', () => { socket.destroy(); resolve(true); });
+            socket.on('timeout', () => { socket.destroy(); resolve(false); });
+            socket.on('error', () => { socket.destroy(); resolve(false); });
+            socket.connect(port, host);
+        });
+    };
+
+    let openPorts = [];
+    let closedPorts = [];
+    for (const p of portsToScan) {
+        const isOpen = await scanPort(cleanDomain, p.port);
+        if (isOpen) {
+            openPorts.push(p);
+            logs.push(`[PORTS-SCAN] Port ${p.port} (${p.name}) -> OPEN`);
+        } else {
+            closedPorts.push(p);
+            logs.push(`[PORTS-SCAN] Port ${p.port} (${p.name}) -> CLOSED`);
+        }
+    }
+
+    // Check for dangerous open management ports
+    const dangerousPorts = openPorts.filter(p => [21, 22, 3389, 3306].includes(p.port));
+    if (dangerousPorts.length > 0) {
+        findings.push({
+            severity: 'high',
+            title: `Dangerous Management Ports Open (${dangerousPorts.map(p => p.port + '/' + p.name).join(', ')})`,
+            desc: `The following sensitive ports are publicly accessible: ${dangerousPorts.map(p => p.name + ' (' + p.port + ')').join(', ')}. Attackers can attempt brute-force or exploit known vulnerabilities on these services.`,
+            solution: 'Close unnecessary ports using firewall rules. Restrict access to management ports via VPN or IP allowlisting.'
+        });
+    } else {
+        findings.push({
+            severity: 'passed',
+            title: 'Critical Management Ports Closed',
+            desc: `Port audit completed: ${openPorts.length} open, ${closedPorts.length} closed. Management interfaces like SSH (22), FTP (21), and RDP (3389) are not publicly accessible.`
+        });
+    }
 
     logs.push(`[SYSTEM] Finished vulnerability check for domain: ${cleanDomain}.`);
 
