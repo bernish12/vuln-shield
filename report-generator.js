@@ -53,7 +53,7 @@ const ReportGenerator = {
             webScan: latestScan === 'web' ? this.getSavedWebScan() : null,
             appScan: latestScan === 'app' ? this.getSavedAppScan() : null,
             owaspScan: latestScan === 'owasp' ? this.getSavedOwaspScan() : null,
-            deviceAudit: latestScan === 'device' ? this.getSavedDeviceAudit() : null,
+            mobileScan: latestScan === 'mobile' ? this.getSavedMobileScan() : null,
             remoteScan: latestScan === 'remote' ? this.getSavedRemoteScan() : null,
             summary: {
                 high: 0,
@@ -126,8 +126,8 @@ const ReportGenerator = {
                         state.appScan.findings.filter(f => f.severity === 'warning').length * 15;
             scores.push(Math.max(100 - bad, 0));
         }
-        if (state.deviceAudit && state.deviceAudit.score !== undefined) {
-            scores.push(state.deviceAudit.score);
+        if (state.mobileScan && state.mobileScan.threatScore !== undefined) {
+            scores.push(Math.max(100 - state.mobileScan.threatScore, 0));
         }
         if (state.owaspScan && state.owaspScan.findings) {
             const bad = state.owaspScan.findings.filter(f => f.severity === 'high' || f.severity === 'critical').length * 20 +
@@ -163,10 +163,9 @@ const ReportGenerator = {
         return raw ? JSON.parse(raw) : null;
     },
 
-    getSavedDeviceAudit: function () {
-        const activeOS = localStorage.getItem('vulnshield_device_active_os') || 'windows';
-        const score = (typeof DeviceScanner !== 'undefined') ? DeviceScanner.calculateScore(activeOS) : 0;
-        return { os: activeOS, score: score, timestamp: new Date().toISOString() };
+    getSavedMobileScan: function () {
+        const raw = localStorage.getItem('vulnshield_report_mobile');
+        return raw ? JSON.parse(raw) : null;
     },
 
     getSavedRemoteScan: function () {
@@ -223,9 +222,9 @@ const ReportGenerator = {
         } else if (report.owaspScan && report.owaspScan.url) {
             scanTypeStr = "Scan Type: OWASP Top 10 Audit";
             targetStr = `Target URL: ${report.owaspScan.url}`;
-        } else if (report.deviceAudit && report.deviceAudit.os) {
-            scanTypeStr = "Scan Type: Host Laptop OS Audit";
-            targetStr = `Target OS: ${report.deviceAudit.os.toUpperCase()} System`;
+        } else if (report.mobileScan && report.mobileScan.device) {
+            scanTypeStr = "Scan Type: Mobile Forensics Audit";
+            targetStr = `Target Device: ${report.mobileScan.device}`;
         } else if (report.remoteScan && report.remoteScan.targetIp) {
             scanTypeStr = "Scan Type: Remote Laptop Forensics";
             targetStr = `Remote IP: ${report.remoteScan.targetIp}`;
@@ -267,6 +266,9 @@ const ReportGenerator = {
         }
         if (report.owaspScan && report.owaspScan.findings) {
             report.owaspScan.findings.forEach(f => allFindings.push({ title: `[OWASP] ${f.title}`, severity: f.severity, desc: f.desc }));
+        }
+        if (report.mobileScan && report.mobileScan.findings) {
+            report.mobileScan.findings.forEach(f => allFindings.push({ title: `[MOBILE] ${f.title}`, severity: f.severity, desc: f.details || f.desc }));
         }
         if (report.deviceAudit) {
             const os = report.deviceAudit.os;
@@ -529,6 +531,39 @@ const ReportGenerator = {
                     </tr>
                 `;
             });
+            html += `</tbody></table></div>`;
+        }
+
+        if (report.mobileScan) {
+            hasContent = true;
+            html += `
+                <div class="report-section-log mb-4">
+                    <h5 class="text-green" style="font-size: 15px; margin-bottom: 8px;"><i class="fa-solid fa-mobile-screen"></i> Mobile Forensics Audit (${report.mobileScan.device})</h5>
+                    <table class="summary-log-table">
+                        <thead>
+                            <tr>
+                                <th>FINDING</th>
+                                <th>SEVERITY</th>
+                                <th>REMEDIATION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            if (report.mobileScan.findings) {
+                report.mobileScan.findings.forEach(f => {
+                    const badgeClass = (f.severity === 'danger' || f.severity === 'critical') ? 'badge-danger' : 
+                                       (f.severity === 'warn' || f.severity === 'warning') ? 'badge-warning' : 'badge-success';
+                    html += `
+                        <tr>
+                            <td>${f.title}</td>
+                            <td><span class="badge ${badgeClass}">${f.severity.toUpperCase()}</span></td>
+                            <td class="text-muted">${f.remediation || f.desc || f.details || ''}</td>
+                        </tr>
+                    `;
+                });
+            }
+            
             html += `</tbody></table></div>`;
         }
 
