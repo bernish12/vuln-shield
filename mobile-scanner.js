@@ -215,6 +215,12 @@ const MobileScanner = (() => {
         // Render Real Verdict UI
         showRealVerdict(realData, verdictEl);
 
+        localStorage.setItem('vulnshield_report_mobile', JSON.stringify(realData));
+        localStorage.setItem('vulnshield_latest_scan', 'mobile');
+        if (typeof app !== 'undefined' && app.recalculateGlobalScore) {
+            app.recalculateGlobalScore();
+        }
+
         setButtonsState(false);
         isRunning = false;
     }
