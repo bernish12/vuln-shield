@@ -51,11 +51,11 @@ const ReportGenerator = {
         const state = {
             timestamp: new Date().toISOString(),
             latestScanType: latestScan,
-            webScan: this.getSavedWebScan(),
-            appScan: this.getSavedAppScan(),
-            owaspScan: this.getSavedOwaspScan(),
-            mobileScan: this.getSavedMobileScan(),
-            remoteScan: this.getSavedRemoteScan(),
+            webScan: latestScan === 'web' ? this.getSavedWebScan() : null,
+            appScan: latestScan === 'app' ? this.getSavedAppScan() : null,
+            owaspScan: latestScan === 'owasp' ? this.getSavedOwaspScan() : null,
+            mobileScan: latestScan === 'mobile' ? this.getSavedMobileScan() : null,
+            remoteScan: latestScan === 'remote' ? this.getSavedRemoteScan() : null,
             summary: {
                 high: 0,
                 medium: 0,
@@ -212,8 +212,25 @@ const ReportGenerator = {
         doc.setFontSize(10);
         doc.text(`Audit Date: ${dateStr}`, 14, 34);
 
-        let scanTypeStr = "Scan Type: Comprehensive Executive Audit";
-        let targetStr = "Target: Multiple Systems & Vectors";
+        let scanTypeStr = "Scan Type: Unknown";
+        let targetStr = "Target: Undefined";
+
+        if (report.webScan && report.webScan.domain) {
+            scanTypeStr = "Scan Type: Web Application Assessment";
+            targetStr = `Target Domain / IP: ${report.webScan.domain}`;
+        } else if (report.appScan && report.appScan.filename) {
+            scanTypeStr = "Scan Type: Mobile App / Code Scanner";
+            targetStr = `Target File: ${report.appScan.filename}`;
+        } else if (report.owaspScan && report.owaspScan.url) {
+            scanTypeStr = "Scan Type: OWASP Top 10 Audit";
+            targetStr = `Target URL: ${report.owaspScan.url}`;
+        } else if (report.mobileScan && report.mobileScan.device) {
+            scanTypeStr = "Scan Type: Mobile Forensics Audit";
+            targetStr = `Target Device: ${report.mobileScan.device}`;
+        } else if (report.remoteScan && report.remoteScan.targetIp) {
+            scanTypeStr = "Scan Type: Remote Laptop Forensics";
+            targetStr = `Remote IP: ${report.remoteScan.targetIp}`;
+        }
         
         doc.setFont("helvetica", "bold");
         doc.setTextColor(0, 0, 0);
