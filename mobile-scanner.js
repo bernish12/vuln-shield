@@ -403,10 +403,21 @@ const MobileScanner = (() => {
                     ]
                 },
                 {
-                    title: 'Phase 5/5 — Generating Forensic Report',
+                    title: 'Phase 5/5 - Generating Forensic Report',
                     lines: [
                         { t: 200,  cls: 'line-info', txt: '  Compiling IOC forensic timeline...' },
-                        { t: 600,  cls: 'line-danger',txt: '  VERDICT: ⛔ DEVICE COMPROMISED — PEGASUS SPYWARE DETECTED' },
+                        { t: 600,  cls: 'line-danger',txt: '  VERDICT: ⛔ DEVICE COMPROMISED - PEGASUS SPYWARE DETECTED' },
+                    ]
+                },
+                {
+                    title: 'Phase 6/6 - Incident Response & Remediation',
+                    lines: [
+                        { t: 100,  cls: 'line-cmd',  txt: '$ vulnshield --deploy-countermeasures' },
+                        { t: 500,  cls: 'line-warn', txt: '  ! IMMEDIATE ACTION REQUIRED:' },
+                        { t: 900,  cls: 'line-info', txt: '    1. Isolate device (Enable Airplane Mode to block C2 Server)' },
+                        { t: 1300, cls: 'line-info', txt: '    2. DO NOT reboot (Preserves RAM for deeper forensics)' },
+                        { t: 1700, cls: 'line-info', txt: '    3. Change all passwords (Especially email & banking)' },
+                        { t: 2100, cls: 'line-info', txt: '    4. Perform full DFU/EDL Factory Firmware Flash' }
                     ]
                 }
             ],
