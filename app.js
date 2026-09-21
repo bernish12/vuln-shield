@@ -886,9 +886,9 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
             scoreApp.className = report.appScan ? 'text-green font-bold' : 'text-muted';
         }
         if (scoreDevice) {
-            const devScore = report.deviceAudit ? report.deviceAudit.score : 0;
-            scoreDevice.innerText = report.deviceAudit ? `${devScore}%` : 'N/A';
-            scoreDevice.className = report.deviceAudit ? (devScore >= 80 ? 'text-green' : (devScore >= 50 ? 'text-yellow' : 'text-red')) : 'text-muted font-normal';
+            const devScore = report.mobileScan ? Math.max(100 - report.mobileScan.threatScore, 0) : 0;
+            scoreDevice.innerText = report.mobileScan ? `${devScore}%` : 'N/A';
+            scoreDevice.className = report.mobileScan ? (devScore >= 80 ? 'text-green' : (devScore >= 50 ? 'text-yellow' : 'text-red')) : 'text-muted font-normal';
         }
         if (scoreOwasp) {
             scoreOwasp.innerText = report.owaspScan ? 'AUDITED' : 'N/A';
@@ -977,6 +977,14 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
                     report.owaspScan.findings.forEach(f => {
                         if (f.severity === 'critical' || f.severity === 'high' || f.severity === 'warning') {
                             addLogItem(f.title, f.severity, 'owasp');
+                            issuesLogged++;
+                        }
+                    });
+                }
+                if (report.mobileScan) {
+                    report.mobileScan.findings.forEach(f => {
+                        if (f.severity === 'critical' || f.severity === 'danger' || f.severity === 'high' || f.severity === 'warning' || f.severity === 'warn') {
+                            addLogItem(f.title, f.severity, 'mobile');
                             issuesLogged++;
                         }
                     });
