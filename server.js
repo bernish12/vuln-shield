@@ -1,4 +1,5 @@
 const http = require('http');
+const net = require('net');
 const fs = require('fs');
 const path = require('path');
 const dns = require('dns').promises;
