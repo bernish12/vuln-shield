@@ -67,13 +67,9 @@ const MobileScanner = (() => {
 
     function setButtonsState(disabled) {
         const btnReal = document.getElementById('btn-mob-real');
-        const btnBench = document.getElementById('btn-mob-benchmark');
-        const btnThreat = document.getElementById('btn-mob-benchmark-threat');
         const btnReset = document.getElementById('btn-mob-reset');
 
         if (btnReal) btnReal.disabled = disabled;
-        if (btnBench) btnBench.disabled = disabled;
-        if (btnThreat) btnThreat.disabled = disabled;
         if (btnReset) btnReset.style.display = disabled ? 'none' : 'inline-flex';
     }
 
@@ -126,7 +122,6 @@ const MobileScanner = (() => {
             addLine(termEl, 'line-info',   '    3. Settings -> Developer Options -> Enable "USB Debugging".');
             addLine(termEl, 'line-info',   '    4. When prompt appears on phone, check "Always allow" and tap OK.');
             addLine(termEl, 'line-info',   '    5. Click "Run Real Device Forensics Audit" again!');
-            addLine(termEl, 'line-warn',   '\n[i] Alternatively, you can run the "Clean Baseline Audit" or "Pegasus IOC Benchmark" buttons above.');
 
             setButtonsState(false);
             isRunning = false;
@@ -356,220 +351,6 @@ const MobileScanner = (() => {
         verdictEl.classList.remove('d-none');
     }
 
-    // =========================================================================
-    // BENCHMARK SIMULATION ENGINE (Pegasus IOC / Clean Baseline)
-    // =========================================================================
-    const scenarios = {
-        infected: {
-            result: 'INFECTED',
-            device: 'Samsung Galaxy S23 (Pegasus IOC Benchmark)',
-            imei: '35-299101-761820-4',
-            phases: [
-                {
-                    title: 'Phase 1/5 — Signature Database Handshake',
-                    lines: [
-                        { t: 100,  cls: 'line-cmd',  txt: '$ vulnshield --load-benchmark pegasus_nso_v4' },
-                        { t: 500,  cls: 'line-ok',   txt: '✓ Loaded 1,247 known Pegasus & Predator IOC signatures' },
-                        { t: 700,  cls: 'line-info', txt: '  Target Archetype: Samsung Galaxy S23 (Android 14)' },
-                    ]
-                },
-                {
-                    title: 'Phase 2/5 — Kernel & Process Memory Heuristics',
-                    lines: [
-                        { t: 100,  cls: 'line-cmd',  txt: '$ adb shell ps -A | grep -E "suspicious|injected|ghost"' },
-                        { t: 600,  cls: 'line-warn', txt: '  ⚠ Hidden processes found in root namespace: 3' },
-                        { t: 900,  cls: 'line-danger',txt: '  ! [PID 8821] com.system.update.ghost  → HIDDEN DAEMON' },
-                        { t: 1200, cls: 'line-danger',txt: '  ! [PID 9104] kernel.logd.inject       → MEMORY INJECTED' },
-                        { t: 1500, cls: 'line-danger',txt: '  ! [PID 9881] android.service.silent   → KEYLOGGER ACTIVE' },
-                    ]
-                },
-                {
-                    title: 'Phase 3/5 — Zero-Click Exploit & IOC Matching',
-                    lines: [
-                        { t: 100,  cls: 'line-cmd',  txt: '$ vulnshield --scan-signatures --db pegasus,predator' },
-                        { t: 600,  cls: 'line-danger',txt: '  ██ MATCH FOUND: Pegasus NSO Group (v4.1-ghost)' },
-                        { t: 900,  cls: 'line-danger',txt: '    Signature Hash: a7f3d291bc44e9012e3f01b5' },
-                        { t: 1200, cls: 'line-danger',txt: '    Vector: Zero-click blastpass exploit (CVE-2023-41064)' },
-                        { t: 1500, cls: 'line-danger',txt: '    Persistence: System partition write → /data/system/ghost' },
-                    ]
-                },
-                {
-                    title: 'Phase 4/5 — C2 Outbound Traffic Analysis',
-                    lines: [
-                        { t: 100,  cls: 'line-cmd',  txt: '$ tcpdump -i wlan0 -nn -c 500 | vulnshield --analyze-c2' },
-                        { t: 600,  cls: 'line-warn', txt: '  ⚠ Encrypted C2 beacon detected every 47s' },
-                        { t: 900,  cls: 'line-danger',txt: '  ! Exfil destination: 185.220.101.47 (Dark Web C2 Server)' },
-                        { t: 1200, cls: 'line-danger',txt: '  ! Data type: SMS content, contacts, microphone stream' },
-                    ]
-                },
-                {
-                    title: 'Phase 5/5 - Generating Forensic Report',
-                    lines: [
-                        { t: 200,  cls: 'line-info', txt: '  Compiling IOC forensic timeline...' },
-                        { t: 600,  cls: 'line-danger',txt: '  VERDICT: ⛔ DEVICE COMPROMISED - PEGASUS SPYWARE DETECTED' },
-                    ]
-                },
-                {
-                    title: 'Phase 6/6 - Incident Response & Remediation',
-                    lines: [
-                        { t: 100,  cls: 'line-cmd',  txt: '$ vulnshield --deploy-countermeasures' },
-                        { t: 500,  cls: 'line-warn', txt: '  ! IMMEDIATE ACTION REQUIRED:' },
-                        { t: 900,  cls: 'line-info', txt: '    1. Isolate device (Enable Airplane Mode to block C2 Server)' },
-                        { t: 1300, cls: 'line-info', txt: '    2. DO NOT reboot (Preserves RAM for deeper forensics)' },
-                        { t: 1700, cls: 'line-info', txt: '    3. Change all passwords (Especially email & banking)' },
-                        { t: 2100, cls: 'line-info', txt: '    4. Perform full DFU/EDL Factory Firmware Flash' }
-                    ]
-                }
-            ],
-            verdict: {
-                status: 'COMPROMISED',
-                cls: 'verdict-danger',
-                icon: '⛔',
-                title: 'SPYWARE DETECTED (BENCHMARK)',
-                subtitle: 'Pegasus (NSO Group) — 3 Hidden Processes — Active C2 Exfiltration',
-                metrics: [
-                    { label: 'Threat Level', value: 'CRITICAL', cls: 'metric-danger' },
-                    { label: 'Hidden PIDs',  value: '3',        cls: 'metric-danger' },
-                    { label: 'Data Leaked',  value: '4.2 GB',   cls: 'metric-danger' },
-                    { label: 'Verdict',      value: 'INFECTED', cls: 'metric-danger' },
-                ]
-            }
-        },
-
-        clean: {
-            result: 'CLEAN',
-            device: 'Google Pixel 8 (Clean Baseline Benchmark)',
-            imei: '35-601110-243980-1',
-            phases: [
-                {
-                    title: 'Phase 1/5 — Baseline Integrity Handshake',
-                    lines: [
-                        { t: 100,  cls: 'line-cmd',  txt: '$ vulnshield --load-benchmark clean_baseline' },
-                        { t: 400,  cls: 'line-ok',   txt: '✓ Connection established — verified hardware boot active' },
-                        { t: 600,  cls: 'line-info', txt: '  Device: Google Pixel 8 (Android 14)' },
-                    ]
-                },
-                {
-                    title: 'Phase 2/5 — Memory & Process Audit',
-                    lines: [
-                        { t: 100,  cls: 'line-cmd',  txt: '$ adb shell ps -A' },
-                        { t: 500,  cls: 'line-ok',   txt: '  ✓ 287 active processes inspected' },
-                        { t: 800,  cls: 'line-ok',   txt: '  ✓ No hidden processes, no memory injection traces' },
-                    ]
-                },
-                {
-                    title: 'Phase 3/5 — Signature Verification',
-                    lines: [
-                        { t: 100,  cls: 'line-cmd',  txt: '$ vulnshield --scan-signatures --db pegasus,predator' },
-                        { t: 600,  cls: 'line-ok',   txt: '  ✓ 0 signature matches found across installed APKs' },
-                        { t: 900,  cls: 'line-ok',   txt: '  ✓ Kernel modules unmodified (Verified Boot active)' },
-                    ]
-                },
-                {
-                    title: 'Phase 4/5 — Traffic & Sockets Audit',
-                    lines: [
-                        { t: 100,  cls: 'line-cmd',  txt: '$ tcpdump -i wlan0 -nn -c 500' },
-                        { t: 500,  cls: 'line-ok',   txt: '  ✓ All sockets originate from known sandboxed UIDs' },
-                        { t: 800,  cls: 'line-ok',   txt: '  ✓ 0 anomalous outbound C2 beacons' },
-                    ]
-                },
-                {
-                    title: 'Phase 5/5 — Report Generation',
-                    lines: [
-                        { t: 200,  cls: 'line-ok',   txt: '  VERDICT: ✅ DEVICE CLEAN — NO THREATS FOUND' },
-                    ]
-                }
-            ],
-            verdict: {
-                status: 'SECURE',
-                cls: 'verdict-clean',
-                icon: '✅',
-                title: 'DEVICE CLEAN (BASELINE)',
-                subtitle: 'No spyware, no hidden processes, no C2 traffic detected',
-                metrics: [
-                    { label: 'Threat Level', value: 'NONE',   cls: 'metric-clean' },
-                    { label: 'Hidden PIDs',  value: '0',      cls: 'metric-clean' },
-                    { label: 'Data Leaked',  value: '0 Bytes',cls: 'metric-clean' },
-                    { label: 'Verdict',      value: 'SECURE', cls: 'metric-clean' },
-                ]
-            }
-        }
-    };
-
-    async function runScan(type) {
-        if (isRunning) return;
-        isRunning = true;
-
-        const scenario = scenarios[type];
-        const wrapper    = document.getElementById('mob-scan-wrapper');
-        const termEl     = document.getElementById('mob-scan-terminal');
-        const progressBar= document.getElementById('mob-scan-bar');
-        const phaseLabel = document.getElementById('mob-scan-phase');
-        const verdictEl  = document.getElementById('mob-scan-verdict');
-
-        wrapper.classList.remove('d-none');
-        verdictEl.classList.add('d-none');
-        verdictEl.classList.remove('verdict-shake');
-        termEl.innerHTML = '';
-        progressBar.style.width = '0%';
-        progressBar.textContent = '0%';
-        progressBar.classList.remove('bar-danger');
-        phaseLabel.textContent = `Running ${type === 'infected' ? 'Pegasus IOC Benchmark' : 'Clean Baseline'}...`;
-
-        setButtonsState(true);
-
-        addLine(termEl, 'line-header', '╔═════════════════════════════════════════════════════════════════════╗');
-        addLine(termEl, 'line-header', `║  VulnShield Benchmark Engine — ${type === 'infected' ? 'PEGASUS IOC SIMULATOR' : 'CLEAN BASELINE AUDIT'}   ║`);
-        addLine(termEl, 'line-header', '╚═════════════════════════════════════════════════════════════════════╝');
-
-        for (let pi = 0; pi < scenario.phases.length; pi++) {
-            const phase = scenario.phases[pi];
-            phaseLabel.textContent = phase.title;
-            addLine(termEl, 'line-phase', `\n── ${phase.title} ──`);
-
-            for (const line of phase.lines) {
-                await sleep(line.t);
-                addLine(termEl, line.cls, line.txt);
-            }
-
-            const pct = Math.round(((pi + 1) / scenario.phases.length) * 100);
-            progressBar.style.width = pct + '%';
-            progressBar.textContent = pct + '%';
-            if (scenario.result === 'INFECTED' && pct >= 40) {
-                progressBar.classList.add('bar-danger');
-            }
-            await sleep(350);
-        }
-
-        phaseLabel.textContent = '✓ Benchmark Complete';
-
-        // Render Verdict
-        const v = scenario.verdict;
-        verdictEl.className = `mob-verdict ${v.cls}`;
-        verdictEl.innerHTML = `
-            <div class="verdict-icon">${v.icon}</div>
-            <div class="verdict-body">
-                <div class="verdict-title">${v.title}</div>
-                <div class="verdict-subtitle">${v.subtitle}</div>
-            </div>
-            <div class="verdict-metrics">
-                ${v.metrics.map(m => `
-                    <div class="verdict-metric ${m.cls}">
-                        <span class="vm-val">${m.value}</span>
-                        <span class="vm-lbl">${m.label}</span>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-        verdictEl.classList.remove('d-none');
-        if (scenario.result === 'INFECTED') {
-            verdictEl.classList.add('verdict-shake');
-        }
-
-        setButtonsState(false);
-        isRunning = false;
-    }
-
     function resetScan() {
         const wrapper   = document.getElementById('mob-scan-wrapper');
         const verdictEl = document.getElementById('mob-scan-verdict');
@@ -586,5 +367,5 @@ const MobileScanner = (() => {
         checkDeviceStatus();
     }
 
-    return { runRealScan, runScan, resetScan, checkDeviceStatus };
+    return { runRealScan, resetScan, checkDeviceStatus };
 })();
