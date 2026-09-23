@@ -168,6 +168,13 @@ const app = {
             findingsList.innerHTML = '';
             terminalLogs.innerHTML = '';
             
+            // Clear prior states from category chips
+            const chips = document.querySelectorAll('#web-owasp-cats-grid .owasp-cat-chip');
+            chips.forEach(chip => {
+                chip.className = 'owasp-cat-chip';
+                chip.querySelector('.cat-status').innerText = '—';
+            });
+
             webStatus.innerText = 'SCANNING';
             webStatus.className = 'status-badge pulse-active';
             webStatusText.innerText = `Analyzing host network parameters for ${cleanDomain}...`;
@@ -233,6 +240,33 @@ const app = {
                 this.renderFindings(findingsList, findings);
                 this.updateFilterCounts(findings, 'web');
                 this.setupFilters(findingsList, findings, 'web');
+
+                // Update category chips based on findings
+                const categories = ['A01', 'A02', 'A03', 'A04', 'A05', 'A06', 'A07', 'A08', 'A09', 'A10'];
+                categories.forEach(cat => {
+                    const catChip = document.querySelector(`#web-owasp-cats-grid .owasp-cat-chip[data-cat="${cat}"]`);
+                    if (catChip) {
+                        const catFindings = findings.filter(f => f.category === cat);
+                        if (catFindings.length > 0) {
+                            const hasHigh = catFindings.some(f => f.severity === 'high');
+                            const hasWarning = catFindings.some(f => f.severity === 'warning');
+                            
+                            if (hasHigh) {
+                                catChip.classList.add('high');
+                                catChip.querySelector('.cat-status').innerText = 'HIGH';
+                            } else if (hasWarning) {
+                                catChip.classList.add('warning');
+                                catChip.querySelector('.cat-status').innerText = 'MED';
+                            } else {
+                                catChip.classList.add('passed');
+                                catChip.querySelector('.cat-status').innerText = 'LOW';
+                            }
+                        } else {
+                            catChip.classList.add('passed');
+                            catChip.querySelector('.cat-status').innerText = 'PASS';
+                        }
+                    }
+                });
 
                 webStatus.innerText = 'COMPLETED';
                 webStatus.className = 'status-badge completed';
@@ -651,7 +685,7 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
             terminalLogs.innerHTML = '';
             
             // Clear prior states from category chips
-            const chips = document.querySelectorAll('.owasp-cat-chip');
+            const chips = document.querySelectorAll('#owasp-cats-grid .owasp-cat-chip');
             chips.forEach(chip => {
                 chip.className = 'owasp-cat-chip';
                 chip.querySelector('.cat-status').innerText = '—';
@@ -689,7 +723,7 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
                 // Update category chips based on findings
                 const categories = ['A01', 'A02', 'A03', 'A04', 'A05', 'A06', 'A07', 'A08', 'A09', 'A10'];
                 categories.forEach(cat => {
-                    const catChip = document.querySelector(`.owasp-cat-chip[data-cat="${cat}"]`);
+                    const catChip = document.querySelector(`#owasp-cats-grid .owasp-cat-chip[data-cat="${cat}"]`);
                     if (catChip) {
                         const catFindings = findings.filter(f => f.category === cat);
                         if (catFindings.length > 0) {
