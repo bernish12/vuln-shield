@@ -34,24 +34,49 @@ const WebScanner = {
      * @returns {Promise<Array>} - Resolves to an array of finding objects.
      */
     scan: async function (domain, logCallback) {
-        logCallback(`[SYSTEM] Initiating server‑side scan for: ${domain}`);
+        logCallback(`[SYSTEM] Initiating server-side scan for: ${domain}`);
         try {
             const token = sessionStorage.getItem('vulnshield_token');
-            const response = await fetch('/api/scan/web', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
-                body: JSON.stringify({ domain })
-            });
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error || 'Server error');
+            const targetUrl = 'https://' + domain;
+            
+            // Start both scans concurrently to do the work fastly
+            const [webRes, owaspRes] = await Promise.all([
+                fetch('/api/scan/web', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
+                    body: JSON.stringify({ domain })
+                }).then(res => res.json().then(data => ({ status: res.status, data }))).catch(e => ({ error: e.message })),
+                fetch('/api/scan/owasp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
+                    body: JSON.stringify({ url: targetUrl })
+                }).then(res => res.json().then(data => ({ status: res.status, data }))).catch(e => ({ error: e.message }))
+            ]);
+
+            let allLogs = [];
+            let allFindings = [];
+
+            if (webRes.error) {
+                logCallback(`[ERROR] Web Scan failed: ${webRes.error}`);
+            } else if (webRes.status >= 400) {
+                logCallback(`[ERROR] Web Scan error: ${webRes.data.error || 'Server error'}`);
+            } else {
+                if (Array.isArray(webRes.data.logs)) allLogs = allLogs.concat(webRes.data.logs);
+                if (Array.isArray(webRes.data.findings)) allFindings = allFindings.concat(webRes.data.findings);
             }
-            const data = await response.json();
-            // Replay backend logs for UI consistency
-            if (Array.isArray(data.logs)) {
-                data.logs.forEach(l => logCallback(l));
+
+            if (owaspRes.error) {
+                logCallback(`[ERROR] OWASP Scan failed: ${owaspRes.error}`);
+            } else if (owaspRes.status >= 400) {
+                logCallback(`[ERROR] OWASP Scan error: ${owaspRes.data.error || 'Server error'}`);
+            } else {
+                if (Array.isArray(owaspRes.data.logs)) allLogs = allLogs.concat(owaspRes.data.logs);
+                if (Array.isArray(owaspRes.data.findings)) allFindings = allFindings.concat(owaspRes.data.findings);
             }
-            return data.findings;
+            
+            allLogs.forEach(l => logCallback(l));
+
+            return allFindings;
         } catch (e) {
             logCallback(`[ERROR] Scan failed: ${e.message}`);
             throw e;
