@@ -2393,7 +2393,7 @@ function fetchUrlFull(targetUrl, maxRedirects = 5) {
             port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
             path: parsed.pathname + parsed.search,
             method: 'GET',
-            timeout: 8000,
+            timeout: 2000,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 VulnShield-OWASP/1.0',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
