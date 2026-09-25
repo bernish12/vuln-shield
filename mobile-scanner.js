@@ -411,6 +411,7 @@ const MobileScanner = (() => {
 
         showRealVerdict(fakeData, verdictEl);
         isRunning = false;
+        setButtonsState(false);
         
         // Disable the Pegasus button again so user resets
         const btnPegasus = document.getElementById('btn-mob-pegasus');
