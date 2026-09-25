@@ -34,8 +34,8 @@ const MobileScanner = (() => {
         }
     }
 
-    // Auto-check on load
-    setTimeout(checkDeviceStatus, 1000);
+    // Auto-check periodically
+    setInterval(checkDeviceStatus, 3000);
 
     // --- Fetch real device data from server (ADB) ---
     async function fetchRealDevice() {
