@@ -351,10 +351,77 @@ const MobileScanner = (() => {
         verdictEl.classList.remove('d-none');
     }
 
+    async function runPegasusSim() {
+        if (isRunning) return;
+        isRunning = true;
+
+        const wrapper    = document.getElementById('mob-scan-wrapper');
+        const termEl     = document.getElementById('mob-scan-terminal');
+        const progressBar= document.getElementById('mob-scan-bar');
+        const phaseLabel = document.getElementById('mob-scan-phase');
+        const verdictEl  = document.getElementById('mob-scan-verdict');
+
+        wrapper.classList.remove('d-none');
+        verdictEl.classList.add('d-none');
+        verdictEl.classList.remove('verdict-shake');
+        termEl.innerHTML = '';
+        progressBar.style.width = '0%';
+        progressBar.classList.remove('bar-danger');
+        phaseLabel.textContent = 'Simulating Advanced Persistent Threat (Pegasus)...';
+
+        setButtonsState(true);
+
+        addLine(termEl, 'line-header', '╔═════════════════════════════════════════════════════════════════════╗');
+        addLine(termEl, 'line-header', '║  ZERO-CLICK SPYWARE SIMULATION (PEGASUS)                            ║');
+        addLine(termEl, 'line-header', '╚═════════════════════════════════════════════════════════════════════╝');
+
+        await sleep(500);
+        progressBar.style.width = '20%';
+        addLine(termEl, 'line-cmd', '$ adb shell pm list packages | grep com.network.bridge');
+        await sleep(800);
+        addLine(termEl, 'line-danger', '[!] SUSPICIOUS PACKAGE FOUND: com.network.bridge');
+        
+        progressBar.style.width = '50%';
+        phaseLabel.textContent = 'Checking active network hooks...';
+        addLine(termEl, 'line-cmd', '$ adb shell netstat -anp | grep bridge');
+        await sleep(1000);
+        addLine(termEl, 'line-warn', '    TCP 10.0.0.5:4382 -> 192.168.1.100:443 (ESTABLISHED)');
+        
+        progressBar.style.width = '80%';
+        phaseLabel.textContent = 'Analyzing binary signatures...';
+        addLine(termEl, 'line-cmd', '$ sha256sum /data/app/com.network.bridge/base.apk');
+        await sleep(1000);
+        addLine(termEl, 'line-danger', '[!] SIGNATURE MATCH: PEGASUS SPYWARE VARIANT DETECTED');
+
+        progressBar.style.width = '100%';
+        progressBar.classList.add('bar-danger');
+        phaseLabel.textContent = 'Simulation Complete - Critical Threat Found';
+
+        // Verdict
+        const fakeData = {
+            serial: 'SIM-998877', device: 'Virtual Device', model: 'Simulation', android: '14', sdk: '34',
+            build: 'SIM.2026.001', cpuAbi: 'arm64-v8a', batteryLevel: '100', batteryTemp: '30.0',
+            isRooted: true, selinux: 'Permissive',
+            threatScore: 100,
+            verdict: 'DEVICE COMPROMISED - PEGASUS DETECTED',
+            findings: [
+                { category: 'spy', severity: 'danger', title: 'PEGASUS SPYWARE DETECTED', status: 'CRITICAL', details: 'Zero-click payload found in memory.', remediation: 'Isolate device immediately.', command: 'pm uninstall -k --user 0 com.network.bridge' }
+            ]
+        };
+
+        showRealVerdict(fakeData, verdictEl);
+        isRunning = false;
+        
+        // Disable the Pegasus button again so user resets
+        const btnPegasus = document.getElementById('btn-mob-pegasus');
+        if (btnPegasus) btnPegasus.disabled = true;
+    }
+
     function resetScan() {
         const wrapper   = document.getElementById('mob-scan-wrapper');
         const verdictEl = document.getElementById('mob-scan-verdict');
         const phaseLabel= document.getElementById('mob-scan-phase');
+        const btnPegasus = document.getElementById('btn-mob-pegasus');
 
         if (wrapper) wrapper.classList.add('d-none');
         if (verdictEl) {
@@ -362,10 +429,11 @@ const MobileScanner = (() => {
             verdictEl.classList.remove('verdict-shake');
         }
         if (phaseLabel) phaseLabel.textContent = 'Select an audit mode to begin';
+        if (btnPegasus) btnPegasus.disabled = false;
 
         setButtonsState(false);
         checkDeviceStatus();
     }
 
-    return { runRealScan, resetScan, checkDeviceStatus };
+    return { runRealScan, runPegasusSim, resetScan, checkDeviceStatus };
 })();
