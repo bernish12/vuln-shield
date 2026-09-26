@@ -4,55 +4,61 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Initialize Matrix Background
-    const canvas = document.createElement('canvas');
-    canvas.id = 'matrix-canvas';
-    canvas.style.position = 'fixed';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100vw';
-    canvas.style.height = '100vh';
-    canvas.style.zIndex = '-10';
-    canvas.style.opacity = '0.4';
-    document.body.prepend(canvas);
+    // Only show Matrix Background on Login Page
+    const isLogin = document.querySelector('.login-wrapper') !== null;
+    let matrixInterval = null;
 
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    if (isLogin) {
+        const canvas = document.createElement('canvas');
+        canvas.id = 'matrix-canvas';
+        canvas.style.position = 'fixed';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.width = '100vw';
+        canvas.style.height = '100vh';
+        canvas.style.zIndex = '-10';
+        canvas.style.opacity = '0.4';
+        document.body.prepend(canvas);
 
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$+-*/=%""\'#&_(),.;:?!\\|{}<>[]^~';
-    const fontSize = 16;
-    const columns = canvas.width / fontSize;
-    const drops = [];
-    for (let x = 0; x < columns; x++) drops[x] = 1;
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-    function drawMatrix() {
-        ctx.fillStyle = 'rgba(0, 10, 5, 0.05)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        ctx.fillStyle = '#00ff66'; // Matrix Green
-        ctx.font = fontSize + 'px "Share Tech Mono", monospace';
-        
-        for (let i = 0; i < drops.length; i++) {
-            const text = letters.charAt(Math.floor(Math.random() * letters.length));
-            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$+-*/=%""\'#&_(),.;:?!\\|{}<>[]^~';
+        const fontSize = 16;
+        const columns = canvas.width / fontSize;
+        const drops = [];
+        for (let x = 0; x < columns; x++) drops[x] = 1;
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 10, 5, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                drops[i] = 0;
+            ctx.fillStyle = '#00ff66'; // Matrix Green
+            ctx.font = fontSize + 'px "Share Tech Mono", monospace';
+            
+            for (let i = 0; i < drops.length; i++) {
+                const text = letters.charAt(Math.floor(Math.random() * letters.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
             }
-            drops[i]++;
         }
+        
+        matrixInterval = setInterval(drawMatrix, 50);
     }
-    
-    // Animate matrix fast when "scanning"
-    let matrixInterval = setInterval(drawMatrix, 50);
 
-    // Global "Scanning" state listeners to speed up matrix and add glitch effects
+    // Global "Scanning" state listeners to add glitch effects
     const originalFetch = window.fetch;
     window.fetch = async function(...args) {
-        // Speed up matrix when network activity happens
-        clearInterval(matrixInterval);
-        matrixInterval = setInterval(drawMatrix, 20);
+        if (isLogin && matrixInterval) {
+            clearInterval(matrixInterval);
+            matrixInterval = setInterval(drawMatrix, 20);
+        }
+        
         document.body.classList.add('hacker-scanning');
         
         try {
@@ -60,8 +66,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return response;
         } finally {
             setTimeout(() => {
-                clearInterval(matrixInterval);
-                matrixInterval = setInterval(drawMatrix, 50);
+                if (isLogin && matrixInterval) {
+                    clearInterval(matrixInterval);
+                    matrixInterval = setInterval(drawMatrix, 50);
+                }
                 document.body.classList.remove('hacker-scanning');
             }, 1500);
         }
