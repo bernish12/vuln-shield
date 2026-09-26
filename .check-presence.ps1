@@ -1,1 +1,1 @@
-$count = (Get-PnpDevice | Where-Object { $_.InstanceId -eq 'USB\VID_0E8D&PID_2008\BDUOGI24LB000852' -and $_.Status -eq 'OK' }).Count; Write-Output $count
+$count = (Get-PnpDevice | Where-Object { $_.InstanceId -eq 'USB\VID_2D95&PID_6003&MI_00\6&1AFF1294&0&0000' -and $_.Status -eq 'OK' }).Count; Write-Output $count
