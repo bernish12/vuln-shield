@@ -109,6 +109,26 @@ slides_data = [
         "notes": "The third module is the Device Audit. It evaluates the local machine running the dashboard, checking OS integrity and secure protocols. It outputs a compliance score, ensuring that an employee's laptop is safe before they access sensitive company data."
     },
     {
+        "title": "Methodology 4: Laptop & Mobile Spyware Scanner",
+        "bullets": [
+            "Universal browser-based forensics engine detecting active spyware.",
+            "Analyzes WebRTC, MediaDevices, and network data for rogue tracking.",
+            "Identifies unencrypted HTTP traffic and missing Do-Not-Track headers.",
+            "Instantly alerts users to device compromise or active hacking."
+        ],
+        "notes": "Our newest module is the Laptop and Mobile Spyware Scanner. Using advanced browser APIs, it detects if a device is being actively hacked or tracked. It flags unencrypted traffic and rogue hardware access, stopping spyware from exfiltrating sensitive data."
+    },
+    {
+        "title": "Live AI Attack & Defense Simulator",
+        "bullets": [
+            "Interactive exploit lab demonstrating real-time attack vs AI defense.",
+            "Showcases 4 scenarios: SQL Injection, AWS Secrets, Stored XSS, Android Backdoor.",
+            "Executes simulated attacks and immediately deploys AI-generated code patches.",
+            "Reduces time-to-fix (TTF) from hours to seconds."
+        ],
+        "notes": "Finally, to show this in action, we built a Live AI Attack and Defense Simulator. It simulates real-world hacks like SQL Injections. The moment an attack happens, our system generates and applies a secure code patch in seconds, turning Vuln-Shield from a monitoring tool into an active defense system."
+    },
+    {
         "title": "Automated PDF Executive Reporting",
         "bullets": [
             "Aggregates data from all three scan vectors.",
