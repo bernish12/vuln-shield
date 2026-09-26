@@ -216,7 +216,7 @@ async function runUniversalScan() {
                     break;
                 }
             }
-        } catch (e) {}
+        } catch (e) { }
 
         if (adbDevice) {
             await performFullAdbScan();
@@ -229,6 +229,10 @@ async function runUniversalScan() {
 
     } catch (e) {
         // Silently ignore — device may have been unplugged mid-scan
+        if (lastDeviceId !== null) {
+            await pushToCloud({ connected: false });
+            lastDeviceId = null;
+        }
     }
 }
 
@@ -249,7 +253,7 @@ async function performFullAdbScan() {
     let batteryTemp = '-';
     let sdkLevel = 'Unknown';
 
-    try { const { stdout } = await execAsync('adb get-serialno', { timeout: ADB_TIMEOUT }); serialNo = stdout.trim() || 'Unknown'; } catch (e) {}
+    try { const { stdout } = await execAsync('adb get-serialno', { timeout: ADB_TIMEOUT }); serialNo = stdout.trim() || 'Unknown'; } catch (e) { }
 
     // Prevent spamming the same device — use cooldown timer
     if (lastDeviceId === serialNo && (Date.now() - lastScanTime) < SCAN_COOLDOWN_MS) return;
@@ -260,33 +264,33 @@ async function performFullAdbScan() {
         const { stdout: model } = await execAsync('adb shell getprop ro.product.model', { timeout: ADB_TIMEOUT });
         const { stdout: brand } = await execAsync('adb shell getprop ro.product.brand', { timeout: ADB_TIMEOUT });
         deviceName = `${brand.trim().toUpperCase()} ${model.trim()}`;
-    } catch (e) {}
-    try { const { stdout: ver } = await execAsync('adb shell getprop ro.build.version.release', { timeout: ADB_TIMEOUT }); androidVersion = ver.trim() || 'Unknown'; } catch (e) {}
-    try { const { stdout: sdk } = await execAsync('adb shell getprop ro.build.version.sdk', { timeout: ADB_TIMEOUT }); sdkLevel = sdk.trim() || 'Unknown'; } catch (e) {}
-    try { const { stdout: patch } = await execAsync('adb shell getprop ro.build.version.security_patch', { timeout: ADB_TIMEOUT }); patchLevel = patch.trim() || 'Unknown'; } catch (e) {}
-    try { const { stdout: build } = await execAsync('adb shell getprop ro.build.display.id', { timeout: ADB_TIMEOUT }); buildId = build.trim() || 'Unknown'; } catch (e) {}
-    try { const { stdout: abi } = await execAsync('adb shell getprop ro.product.cpu.abi', { timeout: ADB_TIMEOUT }); cpuAbi = abi.trim() || 'Unknown'; } catch (e) {}
+    } catch (e) { }
+    try { const { stdout: ver } = await execAsync('adb shell getprop ro.build.version.release', { timeout: ADB_TIMEOUT }); androidVersion = ver.trim() || 'Unknown'; } catch (e) { }
+    try { const { stdout: sdk } = await execAsync('adb shell getprop ro.build.version.sdk', { timeout: ADB_TIMEOUT }); sdkLevel = sdk.trim() || 'Unknown'; } catch (e) { }
+    try { const { stdout: patch } = await execAsync('adb shell getprop ro.build.version.security_patch', { timeout: ADB_TIMEOUT }); patchLevel = patch.trim() || 'Unknown'; } catch (e) { }
+    try { const { stdout: build } = await execAsync('adb shell getprop ro.build.display.id', { timeout: ADB_TIMEOUT }); buildId = build.trim() || 'Unknown'; } catch (e) { }
+    try { const { stdout: abi } = await execAsync('adb shell getprop ro.product.cpu.abi', { timeout: ADB_TIMEOUT }); cpuAbi = abi.trim() || 'Unknown'; } catch (e) { }
     try {
         const { stdout: battOut } = await execAsync('adb shell dumpsys battery', { timeout: ADB_TIMEOUT });
         const levelMatch = battOut.match(/level:\s*(\d+)/);
         const tempMatch = battOut.match(/temperature:\s*(\d+)/);
         if (levelMatch) batteryLevel = `${levelMatch[1]}%`;
         if (tempMatch) batteryTemp = `${(parseInt(tempMatch[1]) / 10).toFixed(1)}°C`;
-    } catch (e) {}
+    } catch (e) { }
 
     // Root Detection
     try { await execAsync('adb shell ls /system/xbin/su', { timeout: ADB_TIMEOUT }); isRooted = true; } catch (e) {
         try { await execAsync('adb shell ls /system/bin/su', { timeout: ADB_TIMEOUT }); isRooted = true; } catch (e2) {
-            try { await execAsync('adb shell which su', { timeout: ADB_TIMEOUT }); isRooted = true; } catch (e3) {}
+            try { await execAsync('adb shell which su', { timeout: ADB_TIMEOUT }); isRooted = true; } catch (e3) { }
         }
     }
 
     // SELinux
-    try { const { stdout: seOut } = await execAsync('adb shell getenforce', { timeout: ADB_TIMEOUT }); selinux = seOut.trim(); } catch (e) {}
+    try { const { stdout: seOut } = await execAsync('adb shell getenforce', { timeout: ADB_TIMEOUT }); selinux = seOut.trim(); } catch (e) { }
 
     // Package List
     try { const { stdout: pmOut } = await execAsync('adb shell pm list packages -3', { timeout: ADB_TIMEOUT }); packagesOut = pmOut; } catch (e) {
-        try { const { stdout: pmOut2 } = await execAsync('adb shell pm list packages', { timeout: ADB_TIMEOUT }); packagesOut = pmOut2; } catch (e2) {}
+        try { const { stdout: pmOut2 } = await execAsync('adb shell pm list packages', { timeout: ADB_TIMEOUT }); packagesOut = pmOut2; } catch (e2) { }
     }
 
     let threatScore = 0;
@@ -367,7 +371,13 @@ async function performHardwareFingerprintScan() {
     }) : null;
 
     const device = mobileDevice || fallbackDevice;
-    if (!device) return;
+    if (!device) {
+        if (lastDeviceId !== null) {
+            await pushToCloud({ connected: false });
+            lastDeviceId = null;
+        }
+        return;
+    }
 
     const deviceName = device.FriendlyName || 'Unknown Android Device';
     const instanceId = device.InstanceId;
@@ -392,17 +402,21 @@ async function performHardwareFingerprintScan() {
     console.log(`📱 [${new Date().toLocaleTimeString()}] DETECTED: ${deviceName} (Brand: ${brandDisplay}, VID: 0x${vendorId}, PID: 0x${productId})`);
 
     // Finding 1: USB Debug is secured (ADB off)
-    findings.push({ category: 'spy', severity: 'success', title: 'USB DEBUG INTERFACE SECURED', status: 'PASS',
+    findings.push({
+        category: 'spy', severity: 'success', title: 'USB DEBUG INTERFACE SECURED', status: 'PASS',
         details: `ADB interface is disabled on ${deviceName}. No remote shell access possible via USB.`,
-        remediation: 'No action needed. Secure config.', command: 'settings get global adb_enabled → 0' });
+        remediation: 'No action needed. Secure config.', command: 'settings get global adb_enabled → 0'
+    });
 
     // Finding 2: MTP mode check
     const mtpInterfaces = pnpDevices.filter(d => d && d.InstanceId && d.InstanceId.includes(`VID_${vendorId}`) && d.Status === 'OK');
     if (mtpInterfaces.length > 1) {
         threatScore += 10;
-        findings.push({ category: 'spy', severity: 'warn', title: 'FILE TRANSFER MODE ACTIVE (MTP)', status: 'WARNING',
+        findings.push({
+            category: 'spy', severity: 'warn', title: 'FILE TRANSFER MODE ACTIVE (MTP)', status: 'WARNING',
             details: `${deviceName} is exposing ${mtpInterfaces.length} USB interfaces. MTP allows file access.`,
-            remediation: 'Switch to "Charge Only" mode.', command: `USB Interfaces: ${mtpInterfaces.length} (VID_${vendorId})` });
+            remediation: 'Switch to "Charge Only" mode.', command: `USB Interfaces: ${mtpInterfaces.length} (VID_${vendorId})`
+        });
     }
 
     // Finding 3: Vendor CVEs
@@ -410,15 +424,19 @@ async function performHardwareFingerprintScan() {
     for (const cve of vendorCves) {
         if (cve.severity === 'danger') threatScore += 15;
         else threatScore += 5;
-        findings.push({ category: 'apk', severity: cve.severity, title: `${cve.cve}: ${cve.title}`, status: cve.severity === 'danger' ? 'CRITICAL' : 'WARNING',
+        findings.push({
+            category: 'apk', severity: cve.severity, title: `${cve.cve}: ${cve.title}`, status: cve.severity === 'danger' ? 'CRITICAL' : 'WARNING',
             details: cve.desc,
-            remediation: 'Apply latest OEM firmware update.', command: `nist.gov/vuln/detail/${cve.cve}` });
+            remediation: 'Apply latest OEM firmware update.', command: `nist.gov/vuln/detail/${cve.cve}`
+        });
     }
 
     // Finding 4: Hardware Fingerprint
-    findings.push({ category: 'spy', severity: 'success', title: 'USB HARDWARE FINGERPRINT CAPTURED', status: 'LOGGED',
+    findings.push({
+        category: 'spy', severity: 'success', title: 'USB HARDWARE FINGERPRINT CAPTURED', status: 'LOGGED',
         details: `Device: ${deviceName} | Brand: ${brandDisplay} | VID: 0x${vendorId} | PID: 0x${productId}`,
-        remediation: 'Fingerprint logged for forensic trail.', command: `VID=${vendorId} PID=${productId}` });
+        remediation: 'Fingerprint logged for forensic trail.', command: `VID=${vendorId} PID=${productId}`
+    });
 
     if (threatScore > 100) threatScore = 100;
 
@@ -488,7 +506,7 @@ async function checkDevicePresence() {
                 lastDeviceId = null;
             }
         }
-    } catch(e) {
+    } catch (e) {
         lastDeviceId = null;
     }
 }
