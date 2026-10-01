@@ -186,9 +186,266 @@
             <div class="content-body">
                 
                 <!-- ================= TAB: FORENSICS ================= -->
-                <section id="tab-forensics" class="tab-pane" style="padding:0;height:100%;">
-                    <iframe id="forensics-iframe" src="forensics.html" style="width:100%;height:calc(100vh - 80px);border:none;background:#030d07;" frameborder="0"></iframe>
+                <section id="tab-forensics" class="tab-pane" style="padding:0;min-height:100%;">
+                <style>
+                #tab-forensics .f-header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:rgba(0,0,0,0.5);border-bottom:1px solid #1a3a24;position:sticky;top:0;z-index:10;}
+                #tab-forensics .f-title{font-size:20px;font-weight:700;color:#00ff88;letter-spacing:3px;text-transform:uppercase;}
+                #tab-forensics .f-sub{font-size:12px;color:#555;margin-top:3px;}
+                #tab-forensics .f-dev-badge{display:flex;align-items:center;gap:8px;background:#0a1a0e;border:1px solid #1a3a24;border-radius:20px;padding:6px 14px;font-size:13px;font-family:'JetBrains Mono',monospace;}
+                #tab-forensics .f-dot{width:8px;height:8px;border-radius:50%;background:#333;transition:all 0.3s;}
+                #tab-forensics .f-dot.on{background:#00ff88;box-shadow:0 0 8px #00ff88;animation:fpulse 2s infinite;}
+                #tab-forensics .f-dot.off{background:#ff3355;}
+                @keyframes fpulse{0%,100%{opacity:1}50%{opacity:0.4}}
+                #tab-forensics .f-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:20px 24px;}
+                #tab-forensics .f-stat{background:#060f09;border:1px solid #1a3a24;border-radius:8px;padding:14px;text-align:center;}
+                #tab-forensics .f-slbl{font-size:10px;color:#555;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;}
+                #tab-forensics .f-sval{font-size:22px;font-weight:700;color:#00ff88;font-family:'JetBrains Mono',monospace;}
+                #tab-forensics .f-ctrl{display:flex;align-items:center;gap:10px;padding:0 24px 20px;}
+                #tab-forensics .f-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:6px;border:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;text-transform:uppercase;letter-spacing:1px;}
+                #tab-forensics .f-btn:disabled{opacity:0.35;cursor:not-allowed;}
+                #tab-forensics .f-btn-go{background:#00ff88;color:#000;}
+                #tab-forensics .f-btn-go:hover:not(:disabled){background:#00ffaa;box-shadow:0 0 15px rgba(0,255,136,0.4);}
+                #tab-forensics .f-btn-ref{background:transparent;color:#00ff88;border:1px solid #1a3a24;}
+                #tab-forensics .f-btn-ref:hover:not(:disabled){border-color:#00ff88;}
+                #tab-forensics .f-btn-dl{background:transparent;color:#00ccff;border:1px solid #00ccff;display:none;}
+                #tab-forensics .f-btn-dl:hover{background:rgba(0,204,255,0.1);}
+                #tab-forensics .f-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 24px 24px;}
+                #tab-forensics .f-card{background:#060f09;border:1px solid #1a3a24;border-radius:8px;overflow:hidden;}
+                #tab-forensics .f-card-full{grid-column:1/-1;}
+                #tab-forensics .f-ch{display:flex;align-items:center;justify-content:space-between;background:#0a2015;padding:10px 14px;border-bottom:1px solid #1a3a24;}
+                #tab-forensics .f-ct{font-size:12px;font-weight:700;color:#00ff88;letter-spacing:2px;text-transform:uppercase;}
+                #tab-forensics .f-cc{font-size:11px;color:#555;font-family:'JetBrains Mono',monospace;}
+                #tab-forensics .f-cb{max-height:300px;overflow-y:auto;padding:0;}
+                #tab-forensics .f-cb::-webkit-scrollbar{width:3px;}
+                #tab-forensics .f-cb::-webkit-scrollbar-thumb{background:#1a3a24;}
+                #tab-forensics .ftbl{width:100%;border-collapse:collapse;font-size:11px;}
+                #tab-forensics .ftbl th{color:#00cc66;padding:7px 12px;text-align:left;border-bottom:1px solid #1a3a24;font-size:10px;letter-spacing:1px;}
+                #tab-forensics .ftbl td{padding:6px 12px;border-bottom:1px solid rgba(255,255,255,0.02);color:#aaa;word-break:break-all;}
+                #tab-forensics .ftbl tr:hover td{background:rgba(0,255,136,0.02);}
+                #tab-forensics .f-badge{display:inline-flex;padding:2px 7px;border-radius:8px;font-size:9px;font-weight:700;letter-spacing:1px;}
+                #tab-forensics .fb-in{background:rgba(0,255,136,0.1);color:#00ff88;border:1px solid rgba(0,255,136,0.2);}
+                #tab-forensics .fb-out{background:rgba(255,204,0,0.1);color:#ffcc00;border:1px solid rgba(255,204,0,0.2);}
+                #tab-forensics .fb-miss{background:rgba(255,51,85,0.1);color:#ff3355;border:1px solid rgba(255,51,85,0.2);}
+                #tab-forensics .f-hbox{background:rgba(0,255,136,0.03);border:1px solid rgba(0,255,136,0.15);border-radius:6px;padding:12px;margin:12px;font-size:11px;}
+                #tab-forensics .f-hlbl{font-size:9px;color:#555;letter-spacing:2px;margin-bottom:5px;}
+                #tab-forensics .f-hval{font-family:'JetBrains Mono',monospace;font-size:11px;color:#00ff88;word-break:break-all;line-height:1.6;}
+                #tab-forensics .f-empty{text-align:center;padding:24px;color:#333;font-size:12px;}
+                #tab-forensics .f-nodev{text-align:center;padding:50px 20px;}
+                #tab-forensics .f-nodev i{font-size:56px;color:#1a2a1e;margin-bottom:16px;display:block;}
+                #tab-forensics .f-nodev h2{font-size:20px;color:#2a4a30;margin-bottom:8px;}
+                #tab-forensics .f-nodev p{color:#2a3a2d;font-size:13px;max-width:380px;margin:0 auto 16px;}
+                #tab-forensics .f-steps{display:flex;flex-direction:column;gap:8px;max-width:340px;margin:0 auto;}
+                #tab-forensics .f-step{display:flex;align-items:center;gap:10px;background:#060f09;border:1px solid #1a3a24;border-radius:6px;padding:9px 12px;text-align:left;}
+                #tab-forensics .f-snum{width:22px;height:22px;border-radius:50%;background:#00ff88;color:#000;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+                #tab-forensics .f-stxt{font-size:12px;color:#555;}
+                #tab-forensics .f-agrid{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;padding:12px;}
+                #tab-forensics .f-aitem{background:#0a1a0d;border:1px solid #1a3a24;border-radius:3px;padding:5px 8px;font-size:10px;color:#777;font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+                #tab-forensics .f-loading{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+                #tab-forensics .f-loading.show{display:flex;}
+                #tab-forensics .f-spin{width:50px;height:50px;border:3px solid #1a3a24;border-top-color:#00ff88;border-radius:50%;animation:fspin 0.8s linear infinite;}
+                @keyframes fspin{to{transform:rotate(360deg)}}
+                #tab-forensics .f-ltxt{font-size:16px;color:#00ff88;letter-spacing:2px;}
+                #tab-forensics .f-lphase{font-size:11px;color:#555;font-family:'JetBrains Mono',monospace;}
+                </style>
+
+                <!-- Loading -->
+                <div class="f-loading" id="f-loading">
+                  <div class="f-spin"></div>
+                  <div class="f-ltxt">EXTRACTING EVIDENCE</div>
+                  <div class="f-lphase" id="f-lphase">Initializing...</div>
+                </div>
+
+                <!-- Header -->
+                <div class="f-header">
+                  <div>
+                    <div class="f-title"><i class="fa-solid fa-microscope" style="margin-right:8px"></i>Mobile Forensics Lab</div>
+                    <div class="f-sub">Real ADB evidence extraction — Call Logs, SMS, WhatsApp, Photos, Chain of Custody</div>
+                  </div>
+                  <div style="display:flex;gap:10px;align-items:center;">
+                    <div class="f-dev-badge">
+                      <div class="f-dot off" id="f-dot"></div>
+                      <span id="f-dlbl">Checking...</span>
+                    </div>
+                    <a href="http://localhost:4001/report" target="_blank" class="f-btn f-btn-dl" id="f-btn-dl" style="text-decoration:none">
+                      <i class="fa-solid fa-download"></i> Download Report
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="f-stats">
+                  <div class="f-stat"><div class="f-slbl">Call Logs</div><div class="f-sval" id="fs-calls">—</div></div>
+                  <div class="f-stat"><div class="f-slbl">SMS</div><div class="f-sval" id="fs-sms">—</div></div>
+                  <div class="f-stat"><div class="f-slbl">Contacts</div><div class="f-sval" id="fs-contacts">—</div></div>
+                  <div class="f-stat"><div class="f-slbl">Media Files</div><div class="f-sval" id="fs-photos">—</div></div>
+                </div>
+
+                <!-- Controls -->
+                <div class="f-ctrl">
+                  <button class="f-btn f-btn-go" id="f-btn-go" disabled>
+                    <i class="fa-solid fa-magnifying-glass-location"></i> Start Forensics Extraction
+                  </button>
+                  <button class="f-btn f-btn-ref" id="f-btn-ref">
+                    <i class="fa-solid fa-rotate"></i> Refresh Device
+                  </button>
+                </div>
+
+                <!-- No Device -->
+                <div id="f-nodev" class="f-nodev">
+                  <i class="fa-solid fa-mobile-screen-button"></i>
+                  <h2>No Device Connected</h2>
+                  <p>Connect Android phone via USB. Also make sure <code style="color:#00ff88">forensics-server.js</code> is running locally on port 4001.</p>
+                  <div class="f-steps">
+                    <div class="f-step"><div class="f-snum">1</div><div class="f-stxt">Run: <code style="color:#00ff88">node forensics-server.js</code> in vuln-shield folder</div></div>
+                    <div class="f-step"><div class="f-snum">2</div><div class="f-stxt">Connect phone via USB cable</div></div>
+                    <div class="f-step"><div class="f-snum">3</div><div class="f-stxt">Phone → Settings → Developer Options → USB Debugging ON</div></div>
+                    <div class="f-step"><div class="f-snum">4</div><div class="f-stxt">Tap "Allow" on phone, then click Refresh Device</div></div>
+                  </div>
+                </div>
+
+                <!-- Results -->
+                <div id="f-results" style="display:none;">
+                  <!-- Evidence Hash -->
+                  <div style="padding:0 24px 16px;">
+                    <div class="f-card f-card-full">
+                      <div class="f-ch"><span class="f-ct"><i class="fa-solid fa-lock"></i> Evidence Integrity — Chain of Custody</span></div>
+                      <div class="f-hbox">
+                        <div class="f-hlbl">DEVICE STATE HASH (SHA-256)</div>
+                        <div class="f-hval" id="f-hash">—</div>
+                        <div style="font-size:10px;color:#444;margin-top:6px;" id="f-ts"></div>
+                        <div style="font-size:10px;color:#2a3a2d;margin-top:4px;">Hash proves data integrity — valid for court submission</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="f-grid">
+                    <!-- Call Logs -->
+                    <div class="f-card">
+                      <div class="f-ch"><span class="f-ct"><i class="fa-solid fa-phone"></i> Call Logs</span><span class="f-cc" id="fc-calls">0</span></div>
+                      <div class="f-cb" id="f-calls-body"><div class="f-empty">No records</div></div>
+                    </div>
+                    <!-- SMS -->
+                    <div class="f-card">
+                      <div class="f-ch"><span class="f-ct"><i class="fa-solid fa-message"></i> SMS Messages</span><span class="f-cc" id="fc-sms">0</span></div>
+                      <div class="f-cb" id="f-sms-body"><div class="f-empty">No records</div></div>
+                    </div>
+                    <!-- Contacts -->
+                    <div class="f-card">
+                      <div class="f-ch"><span class="f-ct"><i class="fa-solid fa-address-book"></i> Contacts</span><span class="f-cc" id="fc-contacts">0</span></div>
+                      <div class="f-cb" id="f-contacts-body"><div class="f-empty">No records</div></div>
+                    </div>
+                    <!-- WhatsApp -->
+                    <div class="f-card">
+                      <div class="f-ch"><span class="f-ct"><i class="fa-brands fa-whatsapp"></i> WhatsApp</span><span class="f-cc" id="fc-wa">0</span></div>
+                      <div class="f-cb" id="f-wa-body"><div class="f-empty">DB not found</div></div>
+                    </div>
+                    <!-- Photos -->
+                    <div class="f-card">
+                      <div class="f-ch"><span class="f-ct"><i class="fa-solid fa-images"></i> Media Files</span><span class="f-cc" id="fc-photos">0</span></div>
+                      <div class="f-cb" id="f-photos-body"><div class="f-empty">No files</div></div>
+                    </div>
+                    <!-- Apps -->
+                    <div class="f-card">
+                      <div class="f-ch"><span class="f-ct"><i class="fa-solid fa-cubes"></i> Installed Apps</span><span class="f-cc" id="fc-apps">0</span></div>
+                      <div id="f-apps-body"><div class="f-empty">No apps</div></div>
+                    </div>
+                  </div>
+                </div>
+
+                <script>
+                (function(){
+                  const FAPI = 'http://localhost:4001';
+                  const $f = id => document.getElementById(id);
+                  const tcls = (t,ctx) => ({INCOMING:'fb-in',OUTGOING:'fb-out',MISSED:'fb-miss',REJECTED:'fb-miss',INBOX:'fb-in',SENT:'fb-out',DRAFT:'fb-out',RECEIVED:'fb-in'}[t]||'fb-out');
+
+                  async function fCheckDevice(){
+                    $f('f-dlbl').textContent='Checking...';
+                    try{
+                      const r=await fetch(FAPI+'/status',{signal:AbortSignal.timeout(4000)});
+                      const d=await r.json();
+                      if(d.connected){
+                        $f('f-dot').className='f-dot on';
+                        $f('f-dlbl').textContent=d.deviceInfo.model||'Connected';
+                        $f('f-btn-go').disabled=false;
+                        $f('f-nodev').style.display='none';
+                      } else {
+                        $f('f-dot').className='f-dot off';
+                        $f('f-dlbl').textContent='No Device';
+                        $f('f-btn-go').disabled=true;
+                        $f('f-nodev').style.display='block';
+                      }
+                    }catch(e){
+                      $f('f-dot').className='f-dot off';
+                      $f('f-dlbl').textContent='Start forensics-server.js (port 4001)';
+                      $f('f-btn-go').disabled=true;
+                    }
+                  }
+
+                  function fRender(data){
+                    $f('f-hash').textContent=data.evidenceHash||'N/A';
+                    $f('f-ts').textContent='Extracted: '+data.timestamp;
+                    // Stats
+                    $f('fs-calls').textContent=(data.callLogs||[]).length;
+                    $f('fs-sms').textContent=(data.sms||[]).length;
+                    $f('fs-contacts').textContent=(data.contacts||[]).length;
+                    $f('fs-photos').textContent=(data.photos||[]).length;
+                    // Call logs
+                    const cl=data.callLogs||[];
+                    $f('fc-calls').textContent=cl.length+' records';
+                    if(cl.length)$f('f-calls-body').innerHTML='<table class="ftbl"><tr><th>Number</th><th>Name</th><th>Date</th><th>Duration</th><th>Type</th></tr>'+cl.map(c=>'<tr><td>'+c.number+'</td><td>'+c.name+'</td><td>'+c.date+'</td><td>'+c.duration+'</td><td><span class="f-badge '+tcls(c.type)+'">'+c.type+'</span></td></tr>').join('')+'</table>';
+                    // SMS
+                    const sm=data.sms||[];
+                    $f('fc-sms').textContent=sm.length+' records';
+                    if(sm.length)$f('f-sms-body').innerHTML='<table class="ftbl"><tr><th>From/To</th><th>Date</th><th>Type</th><th>Message</th></tr>'+sm.map(s=>'<tr><td>'+s.address+'</td><td>'+s.date+'</td><td><span class="f-badge '+tcls(s.type)+'">'+s.type+'</span></td><td>'+s.body+'</td></tr>').join('')+'</table>';
+                    // Contacts
+                    const co=data.contacts||[];
+                    $f('fc-contacts').textContent=co.length+' records';
+                    if(co.length)$f('f-contacts-body').innerHTML='<table class="ftbl"><tr><th>Name</th><th>Number</th></tr>'+co.map(c=>'<tr><td>'+c.name+'</td><td>'+c.number+'</td></tr>').join('')+'</table>';
+                    // WhatsApp
+                    const wa=data.whatsapp||{};
+                    if(wa.found){
+                      $f('fc-wa').textContent=(wa.messages||[]).length+' messages';
+                      let wh='<div class="f-hbox"><div class="f-hlbl">DB HASH</div><div class="f-hval">'+wa.hash+'</div></div>';
+                      if((wa.messages||[]).length)wh+='<table class="ftbl"><tr><th>Contact</th><th>Dir</th><th>Date</th><th>Message</th></tr>'+wa.messages.map(m=>'<tr><td>'+m.contact+'</td><td><span class="f-badge '+tcls(m.direction)+'">'+m.direction+'</span></td><td>'+m.date+'</td><td>'+m.message+'</td></tr>').join('')+'</table>';
+                      $f('f-wa-body').innerHTML=wh;
+                    }
+                    // Photos
+                    const ph=data.photos||[];
+                    $f('fc-photos').textContent=ph.length+' files';
+                    if(ph.length)$f('f-photos-body').innerHTML='<table class="ftbl"><tr><th>File</th><th>Path</th></tr>'+ph.map(p=>'<tr><td>'+p.name+'</td><td style="font-size:9px">'+p.folder+'</td></tr>').join('')+'</table>';
+                    // Apps
+                    const ap=data.apps||[];
+                    $f('fc-apps').textContent=ap.length+' apps';
+                    if(ap.length)$f('f-apps-body').innerHTML='<div class="f-agrid">'+ap.map(a=>'<div class="f-aitem" title="'+a+'">'+a+'</div>').join('')+'</div>';
+                    $f('f-results').style.display='block';
+                    $f('f-btn-dl').style.display='inline-flex';
+                  }
+
+                  async function fExtract(){
+                    const loading=$f('f-loading');
+                    const lphase=$f('f-lphase');
+                    loading.classList.add('show');
+                    const phases=['Connecting via ADB...','Extracting call logs...','Extracting SMS...','Pulling contacts...','Searching WhatsApp DB...','Listing media files...','Scanning installed apps...','Generating SHA-256 hash...','Building evidence report...'];
+                    let pi=0;
+                    const iv=setInterval(()=>{if(pi<phases.length-1)lphase.textContent=phases[pi++];},1500);
+                    try{
+                      const r=await fetch(FAPI+'/extract',{method:'POST',signal:AbortSignal.timeout(90000)});
+                      clearInterval(iv);
+                      if(!r.ok){const e=await r.json();alert('Error: '+e.error);return;}
+                      const d=await r.json();
+                      fRender(d);
+                    }catch(e){clearInterval(iv);alert('Cannot connect to forensics-server.js. Make sure it is running locally: node forensics-server.js');}
+                    finally{loading.classList.remove('show');}
+                  }
+
+                  $f('f-btn-go').addEventListener('click',fExtract);
+                  $f('f-btn-ref').addEventListener('click',fCheckDevice);
+                  fCheckDevice();
+                  setInterval(fCheckDevice,10000);
+                })();
+                </script>
                 </section>
+
 
                 <!-- ================= TAB: DASHBOARD ================= -->
                 <section id="tab-dashboard" class="tab-pane active">
