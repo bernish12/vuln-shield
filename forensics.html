@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VulnShield — Mobile Forensics Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root {
+  --green: #00ff88;
+  --green-dim: #00cc66;
+  --green-dark: #0a2015;
+  --bg: #030d07;
+  --bg2: #060f09;
+  --bg3: #0a1a0e;
+  --border: #1a3a24;
+  --red: #ff3355;
+  --yellow: #ffcc00;
+  --blue: #00ccff;
+  --text: #c8ddd2;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Rajdhani', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.mono { font-family: 'Share Tech Mono', monospace; }
+
+/* ─── Header ─── */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 24px;
+  background: rgba(0,0,0,0.6);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+  position: sticky; top: 0; z-index: 100;
+}
+
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-icon { width: 36px; height: 36px; }
+.logo-text { font-size: 22px; font-weight: 700; color: var(--green); letter-spacing: 2px; }
+.logo-sub { font-size: 11px; color: #555; letter-spacing: 3px; }
+
+.header-right { display: flex; align-items: center; gap: 15px; }
+.device-badge {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 20px; padding: 6px 14px; font-size: 13px;
+}
+.device-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; transition: all 0.3s; }
+.device-dot.connected { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+.device-dot.disconnected { background: var(--red); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* ─── Main layout ─── */
+.container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+.page-title {
+  text-align: center; margin-bottom: 30px;
+}
+.page-title h1 {
+  font-size: 36px; font-weight: 700; color: var(--green);
+  letter-spacing: 4px; text-transform: uppercase;
+}
+.page-title p { color: #555; font-size: 14px; margin-top: 6px; letter-spacing: 1px; }
+
+/* ─── Status Panel ─── */
+.status-panel {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px; text-align: center;
+  transition: border-color 0.3s;
+}
+.stat-card:hover { border-color: var(--green-dim); }
+.stat-label { font-size: 11px; color: #555; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+.stat-value { font-size: 22px; font-weight: 700; color: var(--green); font-family: 'Share Tech Mono', monospace; }
+.stat-sub { font-size: 11px; color: #444; margin-top: 3px; }
+
+/* ─── Control bar ─── */
+.control-bar {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 20px; margin-bottom: 24px;
+}
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 20px; border-radius: 6px; border: none;
+  font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; letter-spacing: 1px; text-transform: uppercase;
+}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary { background: var(--green); color: #000; }
+.btn-primary:hover:not(:disabled) { background: #00ffaa; box-shadow: 0 0 15px rgba(0,255,136,0.4); }
+.btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red); }
+.btn-danger:hover:not(:disabled) { background: rgba(255,51,85,0.1); }
+.btn-outline { background: transparent; color: var(--green); border: 1px solid var(--border); }
+.btn-outline:hover:not(:disabled) { border-color: var(--green); }
+.btn-blue { background: transparent; color: var(--blue); border: 1px solid var(--blue); }
+.btn-blue:hover:not(:disabled) { background: rgba(0,204,255,0.1); }
+
+.progress-bar-wrap {
+  flex: 1; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 4px; height: 8px; overflow: hidden; display: none;
+}
+.progress-bar-fill {
+  height: 100%; width: 0%; background: linear-gradient(90deg, var(--green-dim), var(--green));
+  transition: width 0.5s; border-radius: 4px;
+}
+.phase-text { font-size: 12px; color: #555; min-width: 200px; }
+
+/* ─── Main content grid ─── */
+.main-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+}
+
+/* ─── Section Card ─── */
+.card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden;
+}
+.card-full { grid-column: 1 / -1; }
+
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--green-dark); padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.card-title { font-size: 14px; font-weight: 700; color: var(--green); letter-spacing: 2px; text-transform: uppercase; }
+.card-count { font-size: 12px; color: #555; font-family: 'Share Tech Mono', monospace; }
+
+.card-body { padding: 16px; max-height: 350px; overflow-y: auto; }
+.card-body::-webkit-scrollbar { width: 4px; }
+.card-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ─── Tables ─── */
+.ftable { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ftable th { color: var(--green-dim); padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); font-weight: 600; letter-spacing: 1px; font-size: 11px; }
+.ftable td { padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.03); color: #aaa; word-break: break-all; }
+.ftable tr:hover td { background: rgba(0,255,136,0.03); }
+
+/* ─── Badges ─── */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; letter-spacing: 1px;
+}
+.badge-in { background: rgba(0,255,136,0.1); color: var(--green); border: 1px solid rgba(0,255,136,0.2); }
+.badge-out { background: rgba(255,204,0,0.1); color: var(--yellow); border: 1px solid rgba(255,204,0,0.2); }
+.badge-miss { background: rgba(255,51,85,0.1); color: var(--red); border: 1px solid rgba(255,51,85,0.2); }
+.badge-draft { background: rgba(0,204,255,0.1); color: var(--blue); border: 1px solid rgba(0,204,255,0.2); }
+
+/* ─── Hash box ─── */
+.hash-box {
+  background: rgba(0,255,136,0.03); border: 1px solid rgba(0,255,136,0.2);
+  border-radius: 6px; padding: 14px; margin: 16px;
+}
+.hash-label { font-size: 10px; color: #555; letter-spacing: 2px; margin-bottom: 6px; }
+.hash-value { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--green); word-break: break-all; line-height: 1.6; }
+.hash-ts { font-size: 11px; color: #444; margin-top: 8px; }
+
+/* ─── App grid ─── */
+.app-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; padding: 16px; }
+.app-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; font-size: 11px; color: #888; font-family: 'Share Tech Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ─── Empty state ─── */
+.empty { text-align: center; padding: 30px; color: #333; }
+.empty i { font-size: 32px; margin-bottom: 10px; display: block; }
+.empty p { font-size: 13px; }
+
+/* ─── Loading state ─── */
+.loading-overlay {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.8); z-index: 200; align-items: center; justify-content: center;
+  flex-direction: column; gap: 20px;
+}
+.loading-overlay.active { display: flex; }
+.loading-spinner { width: 60px; height: 60px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 18px; color: var(--green); letter-spacing: 2px; }
+.loading-phase { font-size: 13px; color: #555; font-family: 'Share Tech Mono', monospace; }
+
+/* ─── Terminal log ─── */
+.term-log {
+  background: #020a04; border: 1px solid var(--border); border-radius: 6px;
+  padding: 12px; margin: 16px; max-height: 200px; overflow-y: auto;
+  font-family: 'Share Tech Mono', monospace; font-size: 12px; line-height: 1.8;
+}
+.term-log .tl-ok { color: var(--green); }
+.term-log .tl-warn { color: var(--yellow); }
+.term-log .tl-err { color: var(--red); }
+.term-log .tl-info { color: #666; }
+
+/* ─── No device screen ─── */
+.no-device-screen {
+  text-align: center; padding: 60px 20px;
+}
+.no-device-screen i { font-size: 64px; color: #1a2a20; margin-bottom: 20px; display: block; }
+.no-device-screen h2 { font-size: 24px; color: #2a4a30; margin-bottom: 10px; }
+.no-device-screen p { color: #2a3a2d; font-size: 14px; max-width: 400px; margin: 0 auto 20px; }
+.steps { display: flex; flex-direction: column; gap: 10px; max-width: 350px; margin: 0 auto; }
+.step { display: flex; align-items: center; gap: 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; text-align: left; }
+.step-num { width: 24px; height: 24px; border-radius: 50%; background: var(--green); color: #000; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.step-text { font-size: 13px; color: #666; }
+
+/* ─── Results section ─── */
+#results-section { display: none; }
+</style>
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">EXTRACTING EVIDENCE</div>
+  <div class="loading-phase mono" id="loading-phase">Initializing forensics engine...</div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <svg class="logo-icon" viewBox="0 0 40 40" fill="none">
+      <path d="M20 2L4 10V22C4 30.837 11.163 38 20 38C28.837 38 36 30.837 36 22V10L20 2Z" stroke="#00ff88" stroke-width="1.5" fill="rgba(0,255,136,0.05)"/>
+      <path d="M14 20L18 24L26 16" stroke="#00ff88" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <div class="logo-text">VULNSHIELD</div>
+      <div class="logo-sub">FORENSICS LAB v2.0</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="device-badge">
+      <div class="device-dot disconnected" id="device-dot"></div>
+      <span id="device-label" class="mono" style="font-size:12px">Checking device...</span>
+    </div>
+    <a href="http://localhost:4001/report" target="_blank" class="btn btn-blue" id="btn-download" style="display:none">
+      <i class="fa-solid fa-download"></i> Download Report
+    </a>
+  </div>
+</header>
+
+<div class="container">
+  <div class="page-title">
+    <h1><i class="fa-solid fa-microscope" style="font-size:28px;margin-right:12px"></i>Mobile Forensics Lab</h1>
+    <p>Real ADB-based evidence extraction — Call Logs, SMS, WhatsApp, Photos, Chain of Custody</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="status-panel">
+    <div class="stat-card">
+      <div class="stat-label">Call Logs</div>
+      <div class="stat-value" id="stat-calls">—</div>
+      <div class="stat-sub">Records extracted</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">SMS Messages</div>
+      <div class="stat-value" id="stat-sms">—</div>
+      <div class="stat-sub">Records extracted</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Contacts</div>
+      <div class="stat-value" id="stat-contacts">—</div>
+      <div class="stat-sub">Extracted</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Media Files</div>
+      <div class="stat-value" id="stat-photos">—</div>
+      <div class="stat-sub">Found on device</div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="control-bar">
+    <button class="btn btn-primary" id="btn-extract" disabled>
+      <i class="fa-solid fa-magnifying-glass-location"></i>
+      Start Forensics Extraction
+    </button>
+    <button class="btn btn-outline" id="btn-refresh">
+      <i class="fa-solid fa-rotate"></i> Refresh Device
+    </button>
+    <div class="progress-bar-wrap" id="progress-wrap">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+    <div class="phase-text mono" id="phase-text"></div>
+  </div>
+
+  <!-- No Device -->
+  <div id="no-device-screen" class="no-device-screen">
+    <i class="fa-solid fa-mobile-screen-button"></i>
+    <h2>No Device Connected</h2>
+    <p>Connect an Android phone via USB cable to begin forensic extraction</p>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-text">Connect phone via USB cable</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">On phone: Settings → Developer Options → USB Debugging ON</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">Tap "Allow" on the phone when prompted</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">Click "Refresh Device" above</div></div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results-section">
+    <!-- Evidence Hash -->
+    <div class="card card-full" style="margin-bottom:20px">
+      <div class="card-header">
+        <span class="card-title"><i class="fa-solid fa-lock"></i> Evidence Integrity — Chain of Custody</span>
+      </div>
+      <div class="hash-box">
+        <div class="hash-label">DEVICE STATE HASH (SHA-256)</div>
+        <div class="hash-value mono" id="evidence-hash">—</div>
+        <div class="hash-ts" id="evidence-ts"></div>
+        <div style="margin-top:10px;font-size:11px;color:#333">This hash proves extracted data was not tampered — Valid for court submission</div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <!-- Call Logs -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><i class="fa-solid fa-phone"></i> Call Logs</span>
+          <span class="card-count" id="count-calls">0 records</span>
+        </div>
+        <div class="card-body" id="call-logs-body">
+          <div class="empty"><i class="fa-solid fa-phone-slash"></i><p>No call logs extracted</p></div>
+        </div>
+      </div>
+
+      <!-- SMS -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><i class="fa-solid fa-message"></i> SMS Messages</span>
+          <span class="card-count" id="count-sms">0 records</span>
+        </div>
+        <div class="card-body" id="sms-body">
+          <div class="empty"><i class="fa-solid fa-message-slash"></i><p>No SMS extracted</p></div>
+        </div>
+      </div>
+
+      <!-- Contacts -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><i class="fa-solid fa-address-book"></i> Contacts</span>
+          <span class="card-count" id="count-contacts">0 records</span>
+        </div>
+        <div class="card-body" id="contacts-body">
+          <div class="empty"><i class="fa-solid fa-user-slash"></i><p>No contacts extracted</p></div>
+        </div>
+      </div>
+
+      <!-- WhatsApp -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><i class="fa-brands fa-whatsapp"></i> WhatsApp Forensics</span>
+          <span class="card-count" id="count-wa">0 messages</span>
+        </div>
+        <div class="card-body" id="whatsapp-body">
+          <div class="empty"><i class="fa-brands fa-whatsapp"></i><p>WhatsApp DB not found</p></div>
+        </div>
+      </div>
+
+      <!-- Photos -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><i class="fa-solid fa-images"></i> Media Files</span>
+          <span class="card-count" id="count-photos">0 files</span>
+        </div>
+        <div class="card-body" id="photos-body">
+          <div class="empty"><i class="fa-solid fa-image"></i><p>No media found</p></div>
+        </div>
+      </div>
+
+      <!-- Apps -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><i class="fa-solid fa-cubes"></i> Installed User Apps</span>
+          <span class="card-count" id="count-apps">0 apps</span>
+        </div>
+        <div id="apps-body">
+          <div class="empty"><i class="fa-solid fa-cube"></i><p>No apps listed</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:4001';
+let extractedData = null;
+
+// ─── Utility ───
+const $ = id => document.getElementById(id);
+function typeMap(type, context) {
+  if (context === 'call') return { INCOMING: 'badge-in', OUTGOING: 'badge-out', MISSED: 'badge-miss', REJECTED: 'badge-miss', VOICEMAIL: 'badge-draft' }[type] || 'badge-draft';
+  if (context === 'sms') return { INBOX: 'badge-in', SENT: 'badge-out', DRAFT: 'badge-draft' }[type] || 'badge-draft';
+  if (context === 'wa') return type === 'RECEIVED' ? 'badge-in' : 'badge-out';
+  return 'badge-draft';
+}
+
+// ─── Check Device ───
+async function checkDevice() {
+  $('device-label').textContent = 'Checking...';
+  $('device-dot').className = 'device-dot';
+  try {
+    const res = await fetch(API + '/status', { signal: AbortSignal.timeout(5000) });
+    const data = await res.json();
+    if (data.connected) {
+      $('device-dot').className = 'device-dot connected';
+      $('device-label').textContent = data.deviceInfo.model || 'Device Connected';
+      $('btn-extract').disabled = false;
+      $('no-device-screen').style.display = 'none';
+    } else {
+      $('device-dot').className = 'device-dot disconnected';
+      $('device-label').textContent = 'No Device';
+      $('btn-extract').disabled = true;
+      $('no-device-screen').style.display = 'block';
+    }
+  } catch (e) {
+    $('device-dot').className = 'device-dot disconnected';
+    $('device-label').textContent = 'Server offline (run forensics-server.js)';
+    $('btn-extract').disabled = true;
+  }
+}
+
+// ─── Render Results ───
+function renderCallLogs(logs) {
+  $('count-calls').textContent = logs.length + ' records';
+  $('stat-calls').textContent = logs.length;
+  if (!logs.length) return;
+  $('call-logs-body').innerHTML = '<table class="ftable"><tr><th>Number</th><th>Name</th><th>Date</th><th>Duration</th><th>Type</th></tr>' +
+    logs.map(c => '<tr><td class="mono">' + c.number + '</td><td>' + c.name + '</td><td>' + c.date + '</td><td>' + c.duration + '</td><td><span class="badge ' + typeMap(c.type, 'call') + '">' + c.type + '</span></td></tr>').join('') +
+    '</table>';
+}
+
+function renderSMS(msgs) {
+  $('count-sms').textContent = msgs.length + ' records';
+  $('stat-sms').textContent = msgs.length;
+  if (!msgs.length) return;
+  $('sms-body').innerHTML = '<table class="ftable"><tr><th>From/To</th><th>Date</th><th>Type</th><th>Message</th></tr>' +
+    msgs.map(s => '<tr><td class="mono">' + s.address + '</td><td>' + s.date + '</td><td><span class="badge ' + typeMap(s.type, 'sms') + '">' + s.type + '</span></td><td>' + s.body + '</td></tr>').join('') +
+    '</table>';
+}
+
+function renderContacts(contacts) {
+  $('count-contacts').textContent = contacts.length + ' records';
+  $('stat-contacts').textContent = contacts.length;
+  if (!contacts.length) return;
+  $('contacts-body').innerHTML = '<table class="ftable"><tr><th>Name</th><th>Number</th></tr>' +
+    contacts.map(c => '<tr><td>' + c.name + '</td><td class="mono">' + c.number + '</td></tr>').join('') +
+    '</table>';
+}
+
+function renderWhatsApp(wa) {
+  if (!wa.found) return;
+  let html = '<div class="hash-box"><div class="hash-label">DATABASE HASH (SHA-256)</div><div class="hash-value mono">' + (wa.hash || 'N/A') + '</div></div>';
+  if (wa.messages.length) {
+    $('count-wa').textContent = wa.messages.length + ' messages';
+    html += '<table class="ftable"><tr><th>Contact</th><th>Dir</th><th>Date</th><th>Message</th></tr>' +
+      wa.messages.map(m => '<tr><td class="mono">' + m.contact + '</td><td><span class="badge ' + typeMap(m.direction, 'wa') + '">' + m.direction + '</span></td><td>' + m.date + '</td><td>' + m.message + '</td></tr>').join('') +
+      '</table>';
+  }
+  $('whatsapp-body').innerHTML = html;
+}
+
+function renderPhotos(photos) {
+  $('count-photos').textContent = photos.length + ' files';
+  $('stat-photos').textContent = photos.length;
+  if (!photos.length) return;
+  $('photos-body').innerHTML = '<table class="ftable"><tr><th>File Name</th><th>Path</th></tr>' +
+    photos.map(p => '<tr><td>' + p.name + '</td><td class="mono" style="font-size:10px">' + p.folder + '</td></tr>').join('') +
+    '</table>';
+}
+
+function renderApps(apps) {
+  $('count-apps').textContent = apps.length + ' apps';
+  if (!apps.length) return;
+  $('apps-body').innerHTML = '<div class="app-grid">' + apps.map(a => '<div class="app-item" title="' + a + '">' + a + '</div>').join('') + '</div>';
+}
+
+// ─── Extraction ───
+async function runExtraction() {
+  const overlay = $('loading-overlay');
+  const phase = $('loading-phase');
+  overlay.classList.add('active');
+
+  const phases = [
+    'Connecting to device via ADB...',
+    'Extracting device information...',
+    'Pulling call logs...',
+    'Pulling SMS messages...',
+    'Extracting contacts...',
+    'Searching WhatsApp database...',
+    'Listing media files...',
+    'Scanning installed apps...',
+    'Generating SHA-256 evidence hash...',
+    'Building forensics report...'
+  ];
+
+  let pi = 0;
+  const interval = setInterval(() => {
+    if (pi < phases.length - 1) phase.textContent = phases[pi++];
+  }, 1200);
+
+  try {
+    const res = await fetch(API + '/extract', { method: 'POST', signal: AbortSignal.timeout(90000) });
+    clearInterval(interval);
+    if (!res.ok) {
+      const err = await res.json();
+      alert('Extraction failed: ' + err.error);
+      overlay.classList.remove('active');
+      return;
+    }
+    const data = await res.json();
+    extractedData = data;
+
+    // Update Evidence
+    $('evidence-hash').textContent = data.evidenceHash;
+    $('evidence-ts').textContent = 'Extracted: ' + data.timestamp;
+
+    // Render all sections
+    renderCallLogs(data.callLogs || []);
+    renderSMS(data.sms || []);
+    renderContacts(data.contacts || []);
+    renderWhatsApp(data.whatsapp || { found: false });
+    renderPhotos(data.photos || []);
+    renderApps(data.apps || []);
+
+    $('results-section').style.display = 'block';
+    $('btn-download').style.display = 'flex';
+    phase.textContent = 'Extraction complete!';
+
+  } catch (e) {
+    clearInterval(interval);
+    alert('Error: ' + e.message);
+  } finally {
+    overlay.classList.remove('active');
+  }
+}
+
+// ─── Events ───
+$('btn-extract').addEventListener('click', runExtraction);
+$('btn-refresh').addEventListener('click', checkDevice);
+
+// Initial check
+checkDevice();
+setInterval(checkDevice, 10000);
+</script>
+</body>
+</html>
