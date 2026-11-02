@@ -120,12 +120,12 @@
                     <span>Threat Intel</span>
                 </a>
                 <a href="#reports" class="nav-item" data-tab="reports">
-                    <i class="fa-solid fa-file-shield"></i>
-                    <span>Audit Reports</span>
-                </a>
                 <a href="#forensics" class="nav-item" data-tab="forensics" style="color:#00ccff;border-color:rgba(0,204,255,0.2)">
                     <i class="fa-solid fa-microscope"></i>
                     <span>Forensics Lab</span>
+                </a>
+                    <i class="fa-solid fa-file-shield"></i>
+                    <span>Audit Reports</span>
                 </a>
                 <a href="analytics.html" id="nav-visitor-analytics" class="nav-item" style="color: #64ffda; display: none;">
                     <i class="fa-solid fa-chart-pie"></i>
@@ -173,9 +173,6 @@
                     <button class="btn btn-primary" id="btn-quick-audit">
                         <i class="fa-solid fa-bolt"></i> Quick Audit
                     </button>
-                    <button class="btn" id="btn-armor-mode" style="background: rgba(0, 255, 102, 0.15); border: 1px solid rgba(0, 255, 102, 0.5); color: var(--accent); cursor: pointer; padding: 0.5rem 0.9rem; border-radius: 0; font-weight: 700; text-transform: uppercase; font-family: var(--font-hacker); box-shadow: 0 0 10px rgba(0, 255, 102, 0.2);">
-                        <i class="fa-solid fa-shield-virus"></i> Armor Mode
-                    </button>
                     <button class="btn" onclick="logout()" title="Logout" style="background: rgba(255, 82, 82, 0.15); border: 1px solid rgba(255, 82, 82, 0.3); color: #ff5252; cursor: pointer; padding: 0.5rem 0.9rem; border-radius: 8px; font-weight: 600;">
                         <i class="fa-solid fa-right-from-bracket"></i> Logout
                     </button>
@@ -185,6 +182,7 @@
             <!-- Scrollable Content wrapper -->
             <div class="content-body">
                 
+                <!-- ================= TAB: DASHBOARD ================= -->
                 <!-- ================= TAB: FORENSICS ================= -->
                 <section id="tab-forensics" class="tab-pane" style="padding:0;min-height:100%;">
                 <style>
@@ -266,7 +264,7 @@
                       <div class="f-dot off" id="f-dot"></div>
                       <span id="f-dlbl">Checking...</span>
                     </div>
-                    <a href="http://localhost:4001/report" target="_blank" class="f-btn f-btn-dl" id="f-btn-dl" style="text-decoration:none">
+                    <a href="#" target="_blank" class="f-btn f-btn-dl" id="f-btn-dl" style="text-decoration:none">
                       <i class="fa-solid fa-download"></i> Download Report
                     </a>
                   </div>
@@ -352,102 +350,12 @@
                   </div>
                 </div>
 
-                <script>
-                (function(){
-                  const FAPI = 'http://localhost:4001';
-                  const $f = id => document.getElementById(id);
-                  const tcls = (t,ctx) => ({INCOMING:'fb-in',OUTGOING:'fb-out',MISSED:'fb-miss',REJECTED:'fb-miss',INBOX:'fb-in',SENT:'fb-out',DRAFT:'fb-out',RECEIVED:'fb-in'}[t]||'fb-out');
-
-                  async function fCheckDevice(){
-                    $f('f-dlbl').textContent='Checking...';
-                    try{
-                      const r=await fetch(FAPI+'/status',{signal:AbortSignal.timeout(4000)});
-                      const d=await r.json();
-                      if(d.connected){
-                        $f('f-dot').className='f-dot on';
-                        $f('f-dlbl').textContent=d.deviceInfo.model||'Connected';
-                        $f('f-btn-go').disabled=false;
-                        $f('f-nodev').style.display='none';
-                      } else {
-                        $f('f-dot').className='f-dot off';
-                        $f('f-dlbl').textContent='No Device';
-                        $f('f-btn-go').disabled=true;
-                        $f('f-nodev').style.display='block';
-                      }
-                    }catch(e){
-                      $f('f-dot').className='f-dot off';
-                      $f('f-dlbl').textContent='Start forensics-server.js (port 4001)';
-                      $f('f-btn-go').disabled=true;
-                    }
-                  }
-
-                  function fRender(data){
-                    $f('f-hash').textContent=data.evidenceHash||'N/A';
-                    $f('f-ts').textContent='Extracted: '+data.timestamp;
-                    // Stats
-                    $f('fs-calls').textContent=(data.callLogs||[]).length;
-                    $f('fs-sms').textContent=(data.sms||[]).length;
-                    $f('fs-contacts').textContent=(data.contacts||[]).length;
-                    $f('fs-photos').textContent=(data.photos||[]).length;
-                    // Call logs
-                    const cl=data.callLogs||[];
-                    $f('fc-calls').textContent=cl.length+' records';
-                    if(cl.length)$f('f-calls-body').innerHTML='<table class="ftbl"><tr><th>Number</th><th>Name</th><th>Date</th><th>Duration</th><th>Type</th></tr>'+cl.map(c=>'<tr><td>'+c.number+'</td><td>'+c.name+'</td><td>'+c.date+'</td><td>'+c.duration+'</td><td><span class="f-badge '+tcls(c.type)+'">'+c.type+'</span></td></tr>').join('')+'</table>';
-                    // SMS
-                    const sm=data.sms||[];
-                    $f('fc-sms').textContent=sm.length+' records';
-                    if(sm.length)$f('f-sms-body').innerHTML='<table class="ftbl"><tr><th>From/To</th><th>Date</th><th>Type</th><th>Message</th></tr>'+sm.map(s=>'<tr><td>'+s.address+'</td><td>'+s.date+'</td><td><span class="f-badge '+tcls(s.type)+'">'+s.type+'</span></td><td>'+s.body+'</td></tr>').join('')+'</table>';
-                    // Contacts
-                    const co=data.contacts||[];
-                    $f('fc-contacts').textContent=co.length+' records';
-                    if(co.length)$f('f-contacts-body').innerHTML='<table class="ftbl"><tr><th>Name</th><th>Number</th></tr>'+co.map(c=>'<tr><td>'+c.name+'</td><td>'+c.number+'</td></tr>').join('')+'</table>';
-                    // WhatsApp
-                    const wa=data.whatsapp||{};
-                    if(wa.found){
-                      $f('fc-wa').textContent=(wa.messages||[]).length+' messages';
-                      let wh='<div class="f-hbox"><div class="f-hlbl">DB HASH</div><div class="f-hval">'+wa.hash+'</div></div>';
-                      if((wa.messages||[]).length)wh+='<table class="ftbl"><tr><th>Contact</th><th>Dir</th><th>Date</th><th>Message</th></tr>'+wa.messages.map(m=>'<tr><td>'+m.contact+'</td><td><span class="f-badge '+tcls(m.direction)+'">'+m.direction+'</span></td><td>'+m.date+'</td><td>'+m.message+'</td></tr>').join('')+'</table>';
-                      $f('f-wa-body').innerHTML=wh;
-                    }
-                    // Photos
-                    const ph=data.photos||[];
-                    $f('fc-photos').textContent=ph.length+' files';
-                    if(ph.length)$f('f-photos-body').innerHTML='<table class="ftbl"><tr><th>File</th><th>Path</th></tr>'+ph.map(p=>'<tr><td>'+p.name+'</td><td style="font-size:9px">'+p.folder+'</td></tr>').join('')+'</table>';
-                    // Apps
-                    const ap=data.apps||[];
-                    $f('fc-apps').textContent=ap.length+' apps';
-                    if(ap.length)$f('f-apps-body').innerHTML='<div class="f-agrid">'+ap.map(a=>'<div class="f-aitem" title="'+a+'">'+a+'</div>').join('')+'</div>';
-                    $f('f-results').style.display='block';
-                    $f('f-btn-dl').style.display='inline-flex';
-                  }
-
-                  async function fExtract(){
-                    const loading=$f('f-loading');
-                    const lphase=$f('f-lphase');
-                    loading.classList.add('show');
-                    const phases=['Connecting via ADB...','Extracting call logs...','Extracting SMS...','Pulling contacts...','Searching WhatsApp DB...','Listing media files...','Scanning installed apps...','Generating SHA-256 hash...','Building evidence report...'];
-                    let pi=0;
-                    const iv=setInterval(()=>{if(pi<phases.length-1)lphase.textContent=phases[pi++];},1500);
-                    try{
-                      const r=await fetch(FAPI+'/extract',{method:'POST',signal:AbortSignal.timeout(90000)});
-                      clearInterval(iv);
-                      if(!r.ok){const e=await r.json();alert('Error: '+e.error);return;}
-                      const d=await r.json();
-                      fRender(d);
-                    }catch(e){clearInterval(iv);alert('Cannot connect to forensics-server.js. Make sure it is running locally: node forensics-server.js');}
-                    finally{loading.classList.remove('show');}
-                  }
-
-                  $f('f-btn-go').addEventListener('click',fExtract);
-                  $f('f-btn-ref').addEventListener('click',fCheckDevice);
-                  fCheckDevice();
-                  setInterval(fCheckDevice,10000);
-                })();
-                </script>
+                <script src="forensics-client.js"></script>
                 </section>
 
 
-                <!-- ================= TAB: DASHBOARD ================= -->
+                
+
                 <section id="tab-dashboard" class="tab-pane active">
                     <div class="grid-layout cols-3">
                         <!-- Security Score Card -->
@@ -520,6 +428,15 @@
                     <h2 class="section-heading"><i class="fa-solid fa-crosshairs"></i> Select Target Vector</h2>
                     <div class="grid-layout cols-3">
                         <!-- Vector Card 1: Web -->
+                        <div class="card hover-expand text-center pointer" onclick="app.switchTab('forensics')" style="border-color: rgba(0, 204, 255, 0.4); box-shadow: 0 0 15px rgba(0, 204, 255, 0.1);">
+                            <div class="vector-icon bg-soft-blue text-blue" style="color: #00ccff;">
+                                <i class="fa-solid fa-microscope"></i>
+                            </div>
+                            <h3>Mobile Forensics Lab</h3>
+                            <p class="text-muted">Real ADB evidence extraction: Call logs, SMS, Anti-delete audio carving, WhatsApp &amp; Contacts.</p>
+                            <span class="btn-link" style="color: #00ccff;">Open Lab <i class="fa-solid fa-arrow-right"></i></span>
+                        </div>
+
                         <div class="card hover-expand text-center pointer" onclick="app.switchTab('scan-web')">
                             <div class="vector-icon bg-soft-blue text-blue">
                                 <i class="fa-solid fa-globe"></i>
@@ -605,23 +522,6 @@
                                 </div>
                                 <div class="terminal-body" id="web-terminal-logs">
                                     <div>[SYSTEM] Ready to audit website targets...</div>
-                                </div>
-                            </div>
-
-                            <!-- Category Breakdown -->
-                            <div class="owasp-category-breakdown mt-3">
-                                <h5 class="card-title" style="font-size: 13px;">Category Breakdown</h5>
-                                <div class="owasp-cats-grid" id="web-owasp-cats-grid">
-                                    <div class="owasp-cat-chip" data-cat="A01"><span class="cat-id">A01</span><span class="cat-name">Access Ctrl</span><span class="cat-status">—</span></div>
-                                    <div class="owasp-cat-chip" data-cat="A02"><span class="cat-id">A02</span><span class="cat-name">Crypto</span><span class="cat-status">—</span></div>
-                                    <div class="owasp-cat-chip" data-cat="A03"><span class="cat-id">A03</span><span class="cat-name">Injection</span><span class="cat-status">—</span></div>
-                                    <div class="owasp-cat-chip" data-cat="A04"><span class="cat-id">A04</span><span class="cat-name">Design</span><span class="cat-status">—</span></div>
-                                    <div class="owasp-cat-chip" data-cat="A05"><span class="cat-id">A05</span><span class="cat-name">Misconfig</span><span class="cat-status">—</span></div>
-                                    <div class="owasp-cat-chip" data-cat="A06"><span class="cat-id">A06</span><span class="cat-name">Components</span><span class="cat-status">—</span></div>
-                                    <div class="owasp-cat-chip" data-cat="A07"><span class="cat-id">A07</span><span class="cat-name">Auth</span><span class="cat-status">—</span></div>
-                                    <div class="owasp-cat-chip" data-cat="A08"><span class="cat-id">A08</span><span class="cat-name">Integrity</span><span class="cat-status">—</span></div>
-                                    <div class="owasp-cat-chip" data-cat="A09"><span class="cat-id">A09</span><span class="cat-name">Logging</span><span class="cat-status">—</span></div>
-                                    <div class="owasp-cat-chip" data-cat="A10"><span class="cat-id">A10</span><span class="cat-name">SSRF</span><span class="cat-status">—</span></div>
                                 </div>
                             </div>
                         </div>
@@ -862,8 +762,11 @@
                             <button class="btn btn-primary" id="btn-mob-real" onclick="MobileScanner.runRealScan()" style="background: linear-gradient(135deg, #00d2ff, #00f0ff); color: #000; font-weight: 700; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
                                 <i class="fa-solid fa-fingerprint"></i> Run Real Device Forensics Audit
                             </button>
-                            <button class="btn btn-outline" id="btn-mob-pegasus" onclick="MobileScanner.runPegasusSim()" style="color: #ff0055; border-color: #ff0055; margin-left: 10px; padding: 12px 24px; border-radius: 8px; background: transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border: 1px solid #ff0055;">
-                                <i class="fa-solid fa-spider"></i> Simulate Pegasus Infection
+                            <button class="btn-mob-clean" id="btn-mob-benchmark" onclick="MobileScanner.runScan('clean')" style="display: inline-flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-shield-halved"></i> Clean Baseline Audit
+                            </button>
+                            <button class="btn-mob-infected" id="btn-mob-benchmark-threat" onclick="MobileScanner.runScan('infected')" style="display: inline-flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-bug"></i> Pegasus IOC Benchmark
                             </button>
                             <button class="btn-mob-reset" id="btn-mob-reset" onclick="MobileScanner.resetScan()">
                                 <i class="fa-solid fa-rotate-left"></i> Reset Scan
@@ -1102,7 +1005,7 @@
     </div>
 
     <!-- Chart.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
     <!-- jsPDF Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" integrity="sha384-fCAW/rDWORTbQXSiB7mOg0QtQ5c+r0f544y6XoKjuVva0nMBlCpNUjiFeG5iMdS3" crossorigin="anonymous"></script>
@@ -1117,8 +1020,6 @@
     <script src="laptop-scanner.js"></script>
     <script src="remote-scanner.js"></script>
     <script src="app.js"></script>
-    <script src="hacker-ui.js"></script>
-    <script src="armor-mode.js"></script>
 </body>
 </html>
 
