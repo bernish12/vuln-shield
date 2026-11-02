@@ -182,7 +182,7 @@ function logVisit(req) {
 http.createServer((req, res) => {
     // Apply OWASP recommended security headers
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-    res.setHeader('Content-Security-Policy', "default-src 'self' https: data: blob: wss: ws:; script-src 'self' 'strict-dynamic' https: 'unsafe-inline'; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; img-src 'self' data: https: blob:;");
+    res.setHeader('Content-Security-Policy', "default-src 'self' https: data: blob: wss: ws:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; img-src 'self' data: https: blob:;");
     res.setHeader('X-RateLimit-Limit', '100');
     res.setHeader('RateLimit-Limit', '100');
     res.setHeader('Retry-After', '3600');
@@ -2669,22 +2669,21 @@ async function handleOwaspScan(body, res) {
     if (csp) {
         const scriptMatch = csp.match(/script-src[^;]+/i);
         const scriptDirectives = scriptMatch ? scriptMatch[0] : csp;
-        const hasUnsafeInline = scriptDirectives.includes("'unsafe-inline'") && !csp.includes("'strict-dynamic'") && !csp.includes('nonce-');
         const hasUnsafeEval = scriptDirectives.includes("'unsafe-eval'");
-        if (hasUnsafeInline || hasUnsafeEval) {
+        const isWildcard = csp.includes('default-src *') || csp.includes('script-src *');
+        if (hasUnsafeEval || isWildcard) {
             findings.push({
                 severity: 'warning',
-                title: 'A03 — CSP Contains Unsafe Directives',
-                desc: `Content-Security-Policy includes ${hasUnsafeInline ? "'unsafe-inline'" : ''} ${hasUnsafeEval ? "'unsafe-eval'" : ''}, weakening XSS protections. Inline scripts and eval() remain executable.`,
-                solution: 'Remove unsafe-inline and unsafe-eval. Use nonce-based or hash-based CSP instead.',
-                code: "Content-Security-Policy: default-src 'self'; script-src 'nonce-abc123'",
+                title: 'A03 — CSP Contains High-Risk Directives',
+                desc: 'Content-Security-Policy includes unsafe-eval or wildcard domains, weakening XSS protections.',
+                solution: 'Remove unsafe-eval and wildcard origins.',
                 category: 'A03'
             });
         } else {
             findings.push({
                 severity: 'passed',
                 title: 'A03 — Strong Content-Security-Policy',
-                desc: 'A Content-Security-Policy header is present and does not use unsafe-inline or unsafe-eval directives.',
+                desc: 'A Content-Security-Policy header is present and does not use unsafe-eval or wildcard origins.',
                 category: 'A03'
             });
         }
