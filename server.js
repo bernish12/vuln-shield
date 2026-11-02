@@ -1727,7 +1727,8 @@ function sanitizeDomain(domain) {
     let clean = domain.trim().toLowerCase();
     clean = clean.replace(/^(https?:\/\/)?(www\.)?/, '');
     clean = clean.split('/')[0];
-    const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/;
+    // Supports multi-segment subdomains with hyphens (e.g., vainavs.laxman-s-work.workers.dev)
+    const domainRegex = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
     return domainRegex.test(clean) ? clean : null;
 }
 
@@ -2393,7 +2394,7 @@ function fetchUrlFull(targetUrl, maxRedirects = 5) {
             port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
             path: parsed.pathname + parsed.search,
             method: 'GET',
-            timeout: 10000,
+            timeout: 8000,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 VulnShield-OWASP/1.0',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
