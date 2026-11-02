@@ -23,7 +23,9 @@ const WebScanner = {
         // Take only the hostname part (strip path/query/hash)
         clean = clean.split('/')[0].split('?')[0].split('#')[0];
         // Basic domain format validation
-        const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/;
+        // Supports multi-segment subdomains with hyphens (e.g., vainavs.laxman-s-work.workers.dev)
+        // Each label: starts & ends with alphanumeric, hyphens allowed in middle
+        const domainRegex = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
         return domainRegex.test(clean) ? clean : null;
     },
 
@@ -34,37 +36,24 @@ const WebScanner = {
      * @returns {Promise<Array>} - Resolves to an array of finding objects.
      */
     scan: async function (domain, logCallback) {
-        logCallback(`[SYSTEM] Initiating server-side scan for: ${domain}`);
+        logCallback(`[SYSTEM] Initiating server‑side scan for: ${domain}`);
         try {
             const token = sessionStorage.getItem('vulnshield_token');
-            const targetUrl = 'https://' + domain;
-            
-            let allFindings = [];
-
-            // Start both scans concurrently and log immediately when they finish
-            const pWeb = fetch('/api/scan/web', {
+            const response = await fetch('/api/scan/web', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
                 body: JSON.stringify({ domain })
-            }).then(res => res.json()).then(data => {
-                if (data.error) throw new Error(data.error);
-                if (Array.isArray(data.logs)) data.logs.forEach(l => logCallback(l));
-                if (Array.isArray(data.findings)) allFindings = allFindings.concat(data.findings);
-            }).catch(e => logCallback(`[ERROR] Web Scan failed: ${e.message}`));
-
-            const pOwasp = fetch('/api/scan/owasp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
-                body: JSON.stringify({ url: targetUrl })
-            }).then(res => res.json()).then(data => {
-                if (data.error) throw new Error(data.error);
-                if (Array.isArray(data.logs)) data.logs.forEach(l => logCallback(l));
-                if (Array.isArray(data.findings)) allFindings = allFindings.concat(data.findings);
-            }).catch(e => logCallback(`[ERROR] OWASP Scan failed: ${e.message}`));
-
-            await Promise.all([pWeb, pOwasp]);
-            
-            return allFindings;
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Server error');
+            }
+            const data = await response.json();
+            // Replay backend logs for UI consistency
+            if (Array.isArray(data.logs)) {
+                data.logs.forEach(l => logCallback(l));
+            }
+            return data.findings;
         } catch (e) {
             logCallback(`[ERROR] Scan failed: ${e.message}`);
             throw e;
