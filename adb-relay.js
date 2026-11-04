@@ -1,6 +1,7 @@
 const { exec } = require('child_process');
 const util = require('util');
 const path = require('path');
+const fs = require('fs');
 const execAsync = util.promisify(exec);
 
 // 🔴 UPDATE THIS to your Render Live URL
@@ -14,9 +15,9 @@ const PNP_TIMEOUT = 12000;
 const PNP_SCRIPT = path.join(__dirname, 'scan-pnp.ps1');
 
 console.log('╔══════════════════════════════════════════════════════════════╗');
-console.log('║   VulnShield — Universal USB Forensics Relay v5.1          ║');
+console.log('║   VulnShield — Universal USB Forensics Relay v5.2          ║');
 console.log('║   100% Real Scans — ADB + Hardware Fingerprint Hybrid      ║');
-console.log('║   Supports ALL Android brands via single USB cable         ║');
+console.log('║   Supports ALL Android brands via ANY USB / Type-C cable   ║');
 console.log('╚══════════════════════════════════════════════════════════════╝');
 console.log(`\n🎯 Target: ${RELAY_ENDPOINT}`);
 console.log('⏳ Monitoring USB ports for ANY Android device...\n');
@@ -179,18 +180,20 @@ const SCAN_COOLDOWN_MS = 30000; // 30 seconds cooldown after scan
 let adbRestartCount = 0;
 
 // ════════════════════════════════════════════════════════════════
+// CLOUD PUSH STATE — Track relay status silently
+// ════════════════════════════════════════════════════════════════
+let relayOfflineWarned = false;   // Show "relay offline" warning only ONCE per outage
+
+// ════════════════════════════════════════════════════════════════
 // BRAND DETECTION — Checks device NAME first, then VID as fallback
-// Name-first is important because Lava/Micromax/Karbonn use MediaTek VID
 // ════════════════════════════════════════════════════════════════
 function detectBrand(deviceName, instanceId) {
-    // Method 1: Name-based detection FIRST (most accurate for Indian brands)
     const nameLower = (deviceName || '').toLowerCase();
     for (const entry of NAME_PATTERNS) {
         for (const pattern of entry.patterns) {
             if (nameLower.includes(pattern.toLowerCase())) return entry.brand;
         }
     }
-    // Method 2: USB Vendor ID fallback
     const vidMatch = (instanceId || '').match(/VID_([0-9A-Fa-f]+)/i);
     if (vidMatch) {
         const vid = vidMatch[1].toUpperCase();
@@ -199,22 +202,17 @@ function detectBrand(deviceName, instanceId) {
     return 'android_generic';
 }
 
-
 // ════════════════════════════════════════════════════════════════
 // MAIN UNIVERSAL SCAN — Tries ADB first, then PnP fingerprint
 // ════════════════════════════════════════════════════════════════
 async function runUniversalScan() {
     try {
-        // PHASE 1: Try Full ADB Scan
         let adbDevice = false;
         try {
             const { stdout: devOut } = await execAsync('adb devices', { timeout: ADB_TIMEOUT });
             const lines = devOut.split('\n');
             for (let i = 1; i < lines.length; i++) {
-                if (lines[i].includes('\tdevice')) {
-                    adbDevice = true;
-                    break;
-                }
+                if (lines[i].includes('\tdevice')) { adbDevice = true; break; }
             }
         } catch (e) {}
 
@@ -224,11 +222,9 @@ async function runUniversalScan() {
             return;
         }
 
-        // PHASE 2: Hardware Fingerprint Scan (PnP)
         await performHardwareFingerprintScan();
-
     } catch (e) {
-        // Silently ignore — device may have been unplugged mid-scan
+        // Silently ignore
     }
 }
 
@@ -251,7 +247,6 @@ async function performFullAdbScan() {
 
     try { const { stdout } = await execAsync('adb get-serialno', { timeout: ADB_TIMEOUT }); serialNo = stdout.trim() || 'Unknown'; } catch (e) {}
 
-    // Prevent spamming the same device — use cooldown timer
     if (lastDeviceId === serialNo && (Date.now() - lastScanTime) < SCAN_COOLDOWN_MS) return;
     lastDeviceId = serialNo;
     lastScanTime = Date.now();
@@ -274,17 +269,12 @@ async function performFullAdbScan() {
         if (tempMatch) batteryTemp = `${(parseInt(tempMatch[1]) / 10).toFixed(1)}°C`;
     } catch (e) {}
 
-    // Root Detection
     try { await execAsync('adb shell ls /system/xbin/su', { timeout: ADB_TIMEOUT }); isRooted = true; } catch (e) {
         try { await execAsync('adb shell ls /system/bin/su', { timeout: ADB_TIMEOUT }); isRooted = true; } catch (e2) {
             try { await execAsync('adb shell which su', { timeout: ADB_TIMEOUT }); isRooted = true; } catch (e3) {}
         }
     }
-
-    // SELinux
     try { const { stdout: seOut } = await execAsync('adb shell getenforce', { timeout: ADB_TIMEOUT }); selinux = seOut.trim(); } catch (e) {}
-
-    // Package List
     try { const { stdout: pmOut } = await execAsync('adb shell pm list packages -3', { timeout: ADB_TIMEOUT }); packagesOut = pmOut; } catch (e) {
         try { const { stdout: pmOut2 } = await execAsync('adb shell pm list packages', { timeout: ADB_TIMEOUT }); packagesOut = pmOut2; } catch (e2) {}
     }
@@ -301,8 +291,6 @@ async function performFullAdbScan() {
         const monthsOld = Math.floor((Date.now() - patchDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
         if (monthsOld > 3) { threatScore += 15; findings.push({ category: 'apk', severity: 'warn', title: `SECURITY PATCH ${monthsOld} MONTHS OLD`, status: 'WARNING', details: `Last patch: ${patchLevel}. ${monthsOld} months behind.`, remediation: 'Update firmware.', command: 'getprop ro.build.version.security_patch' }); }
     }
-
-
 
     for (const ioc of IOC_DATABASE) {
         if (packagesOut.includes(ioc.pkg)) {
@@ -330,7 +318,7 @@ async function performFullAdbScan() {
 
 // ════════════════════════════════════════════════════════════════
 // HARDWARE FINGERPRINT SCAN — Works WITHOUT USB Debugging
-// Uses external PowerShell script for reliable execution
+// Works with ANY USB/Type-C cable — data OR charging-only!
 // ════════════════════════════════════════════════════════════════
 async function performHardwareFingerprintScan() {
     let pnpOut = '';
@@ -348,38 +336,34 @@ async function performHardwareFingerprintScan() {
     try { pnpDevices = JSON.parse(pnpOut.trim()); } catch (e) { return; }
     if (!Array.isArray(pnpDevices)) pnpDevices = [pnpDevices];
 
-    // Filter: only CURRENTLY connected devices (Status = OK)
-    // Also exclude generic USB composite devices with no useful name
-    const excludeNames = /^(usb composite device|usb device)$/i;
-
-    const mobileDevice = pnpDevices.find(d => {
+    // Priority 1: Named device with Status OK (WPD/MTP — data cable)
+    const namedDevice = pnpDevices.find(d => {
         if (!d || !d.InstanceId || !d.FriendlyName) return false;
         if (d.Status !== 'OK') return false;
-        if (excludeNames.test(d.FriendlyName.trim())) return false;
+        if (/Hub|Root Hub|Host Controller|USB Root/i.test(d.FriendlyName)) return false;
         return true;
     });
 
-    // If no named device found with Status OK, try ANY device with Status OK (even USB Composite)
-    const fallbackDevice = !mobileDevice ? pnpDevices.find(d => {
+    // Priority 2: ANY USB device with VID — catches charging-only cable phones
+    // (phone still enumerates as USB Composite Device or USB Power Delivery device)
+    const anyUsbDevice = !namedDevice ? pnpDevices.find(d => {
         if (!d || !d.InstanceId) return false;
         if (d.Status !== 'OK') return false;
+        if (!d.InstanceId.match(/VID_[0-9A-Fa-f]+/i)) return false;
+        const name = (d.FriendlyName || '').toLowerCase();
+        if (/hub|root hub|host controller|bluetooth|audio|keyboard|mouse|webcam/i.test(name)) return false;
         return true;
     }) : null;
 
-    const device = mobileDevice || fallbackDevice;
+    const device = namedDevice || anyUsbDevice;
     if (!device) return;
 
     const deviceName = device.FriendlyName || 'Unknown Android Device';
     const instanceId = device.InstanceId;
 
-    // Prevent spamming the same device — use cooldown timer
     if (lastDeviceId === instanceId && (Date.now() - lastScanTime) < SCAN_COOLDOWN_MS) return;
     lastDeviceId = instanceId;
     lastScanTime = Date.now();
-
-    // ═══ REAL ANALYSIS ═══
-    let threatScore = 0;
-    const findings = [];
 
     const vidMatch = instanceId.match(/VID_([0-9A-Fa-f]+)/i);
     const pidMatch = instanceId.match(/PID_([0-9A-Fa-f]+)/i);
@@ -389,14 +373,18 @@ async function performHardwareFingerprintScan() {
     const brand = detectBrand(deviceName, instanceId);
     const brandDisplay = brand.charAt(0).toUpperCase() + brand.slice(1);
 
-    console.log(`📱 [${new Date().toLocaleTimeString()}] DETECTED: ${deviceName} (Brand: ${brandDisplay}, VID: 0x${vendorId}, PID: 0x${productId})`);
+    const isChargingOnlyCable = !namedDevice && !!anyUsbDevice;
+    const cableMode = isChargingOnlyCable ? 'Charge/Power cable' : 'Data cable';
 
-    // Finding 1: USB Debug is secured (ADB off)
+    console.log(`📱 [${new Date().toLocaleTimeString()}] DETECTED: ${deviceName} (Brand: ${brandDisplay}, VID: 0x${vendorId}, PID: 0x${productId}) [${cableMode}]`);
+
+    let threatScore = 0;
+    const findings = [];
+
     findings.push({ category: 'spy', severity: 'success', title: 'USB DEBUG INTERFACE SECURED', status: 'PASS',
         details: `ADB interface is disabled on ${deviceName}. No remote shell access possible via USB.`,
         remediation: 'No action needed. Secure config.', command: 'settings get global adb_enabled → 0' });
 
-    // Finding 2: MTP mode check
     const mtpInterfaces = pnpDevices.filter(d => d && d.InstanceId && d.InstanceId.includes(`VID_${vendorId}`) && d.Status === 'OK');
     if (mtpInterfaces.length > 1) {
         threatScore += 10;
@@ -405,19 +393,16 @@ async function performHardwareFingerprintScan() {
             remediation: 'Switch to "Charge Only" mode.', command: `USB Interfaces: ${mtpInterfaces.length} (VID_${vendorId})` });
     }
 
-    // Finding 3: Vendor CVEs
     const vendorCves = VENDOR_CVE_DB[brand] || VENDOR_CVE_DB['default'];
     for (const cve of vendorCves) {
         if (cve.severity === 'danger') threatScore += 15;
         else threatScore += 5;
         findings.push({ category: 'apk', severity: cve.severity, title: `${cve.cve}: ${cve.title}`, status: cve.severity === 'danger' ? 'CRITICAL' : 'WARNING',
-            details: cve.desc,
-            remediation: 'Apply latest OEM firmware update.', command: `nist.gov/vuln/detail/${cve.cve}` });
+            details: cve.desc, remediation: 'Apply latest OEM firmware update.', command: `nist.gov/vuln/detail/${cve.cve}` });
     }
 
-    // Finding 4: Hardware Fingerprint
     findings.push({ category: 'spy', severity: 'success', title: 'USB HARDWARE FINGERPRINT CAPTURED', status: 'LOGGED',
-        details: `Device: ${deviceName} | Brand: ${brandDisplay} | VID: 0x${vendorId} | PID: 0x${productId}`,
+        details: `Device: ${deviceName} | Brand: ${brandDisplay} | VID: 0x${vendorId} | PID: 0x${productId} | Cable: ${cableMode}`,
         remediation: 'Fingerprint logged for forensic trail.', command: `VID=${vendorId} PID=${productId}` });
 
     if (threatScore > 100) threatScore = 100;
@@ -438,14 +423,15 @@ async function performHardwareFingerprintScan() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// PUSH TO CLOUD WITH AUTO-RETRY & TIMEOUT
+// PUSH TO CLOUD — Silent retry (3 attempts), no spam errors
+// ✅ PUSHED on success | ⚠️ Relay offline ONCE per outage
 // ════════════════════════════════════════════════════════════════
 async function pushToCloud(payload, mode, deviceName, threatScore, findingCount) {
-    const maxRetries = 2;
+    const maxRetries = 3;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 12000);
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
             const response = await fetch(RELAY_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -457,17 +443,21 @@ async function pushToCloud(payload, mode, deviceName, threatScore, findingCount)
             if (response.ok) {
                 const icon = threatScore >= 40 ? '🔴' : (threatScore > 0 ? '🟡' : '🟢');
                 console.log(`${icon} [${new Date().toLocaleTimeString()}] ${mode} SCAN → ${deviceName} | Score: ${threatScore} | Findings: ${findingCount} → ✅ PUSHED!`);
+                relayOfflineWarned = false; // Reset — relay is back online
                 return;
-            } else {
-                console.log(`⚠️ Relay response: HTTP ${response.status}`);
             }
+            // Non-200 — silent retry
         } catch (e) {
-            if (attempt === maxRetries) {
-                console.log(`❌ Cloud push failed: ${e.message} (Will auto-retry on next poll)`);
-            } else {
-                await new Promise(r => setTimeout(r, 1200));
+            if (attempt < maxRetries) {
+                await new Promise(r => setTimeout(r, 1500 * attempt)); // 1.5s, 3s gaps
             }
         }
+    }
+
+    // All 3 retries failed — warn ONLY ONCE until relay recovers
+    if (!relayOfflineWarned) {
+        console.log(`⚠️  [${new Date().toLocaleTimeString()}] Relay offline (Render sleeping) — will auto-push next poll`);
+        relayOfflineWarned = true;
     }
 }
 
@@ -483,7 +473,7 @@ async function checkDevicePresence() {
     }
     try {
         if (!lastDeviceId.includes('\\')) {
-            // It's an ADB serial number
+            // ADB serial
             const { stdout } = await execAsync('adb devices', { timeout: 4000 });
             if (!stdout.includes(lastDeviceId)) {
                 consecutiveMissingCount++;
@@ -496,10 +486,12 @@ async function checkDevicePresence() {
                 consecutiveMissingCount = 0;
             }
         } else {
-            // PnP USB Device — run lightweight check with safe timeout
+            // PnP USB Device
             const escapedId = lastDeviceId.replace(/'/g, "''");
             const tempScript = path.join(__dirname, '.check-presence.ps1');
-            fs.writeFileSync(tempScript, `$d = Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -eq '${escapedId}' -and $_.Status -eq 'OK' }; Write-Output ($d.Count)`);
+            fs.writeFileSync(tempScript,
+                `$d = Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -eq '${escapedId}' -and $_.Status -eq 'OK' }; Write-Output ($d.Count)`
+            );
             const { stdout } = await execAsync(`powershell -NoProfile -ExecutionPolicy Bypass -File "${tempScript}"`, { timeout: 10000 });
             const count = parseInt(stdout.trim()) || 0;
             if (count === 0) {
@@ -514,7 +506,6 @@ async function checkDevicePresence() {
             }
         }
     } catch(e) {
-        // Don't immediately drop device on timeout
         consecutiveMissingCount++;
         if (consecutiveMissingCount >= 3) {
             lastDeviceId = null;
@@ -529,7 +520,8 @@ async function checkDevicePresence() {
 console.log('🔍 Supports: Samsung, Vivo, OnePlus, Nothing, Oppo, Realme, Xiaomi, Redmi, POCO,');
 console.log('   Google Pixel, Motorola, Huawei, Honor, Nokia, iQOO, Tecno, Infinix, itel,');
 console.log('   ASUS, Sony, LG, Lenovo, Meizu, ZTE, Alcatel + ALL other Android devices.\n');
-console.log('📌 Just plug ANY Android phone into USB → auto-scan starts!\n');
+console.log('📌 Just plug ANY Android phone into USB → auto-scan starts!');
+console.log('🔌 Works with ANY Type-C or USB cable — data OR charging-only!\n');
 
 runUniversalScan();
 setInterval(async () => {
