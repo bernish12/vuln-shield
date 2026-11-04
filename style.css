@@ -953,6 +953,7 @@ body.cyber-theme {
     border-color: rgba(255, 255, 255, 0.08);
 }
 
+.finding-item.severity-critical { border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.04); }
 .finding-item.severity-high { border-left: 4px solid var(--risk-high); }
 .finding-item.severity-warning { border-left: 4px solid var(--risk-medium); }
 .finding-item.severity-passed { border-left: 4px solid var(--risk-passed); }
