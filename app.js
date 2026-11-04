@@ -168,13 +168,6 @@ const app = {
             findingsList.innerHTML = '';
             terminalLogs.innerHTML = '';
             
-            // Clear prior states from category chips
-            const chips = document.querySelectorAll('#web-owasp-cats-grid .owasp-cat-chip');
-            chips.forEach(chip => {
-                chip.className = 'owasp-cat-chip';
-                chip.querySelector('.cat-status').innerText = '—';
-            });
-
             webStatus.innerText = 'SCANNING';
             webStatus.className = 'status-badge pulse-active';
             webStatusText.innerText = `Analyzing host network parameters for ${cleanDomain}...`;
@@ -241,33 +234,6 @@ const app = {
                 this.updateFilterCounts(findings, 'web');
                 this.setupFilters(findingsList, findings, 'web');
 
-                // Update category chips based on findings
-                const categories = ['A01', 'A02', 'A03', 'A04', 'A05', 'A06', 'A07', 'A08', 'A09', 'A10'];
-                categories.forEach(cat => {
-                    const catChip = document.querySelector(`#web-owasp-cats-grid .owasp-cat-chip[data-cat="${cat}"]`);
-                    if (catChip) {
-                        const catFindings = findings.filter(f => f.category === cat);
-                        if (catFindings.length > 0) {
-                            const hasHigh = catFindings.some(f => f.severity === 'high');
-                            const hasWarning = catFindings.some(f => f.severity === 'warning');
-                            
-                            if (hasHigh) {
-                                catChip.classList.add('high');
-                                catChip.querySelector('.cat-status').innerText = 'HIGH';
-                            } else if (hasWarning) {
-                                catChip.classList.add('warning');
-                                catChip.querySelector('.cat-status').innerText = 'MED';
-                            } else {
-                                catChip.classList.add('passed');
-                                catChip.querySelector('.cat-status').innerText = 'LOW';
-                            }
-                        } else {
-                            catChip.classList.add('passed');
-                            catChip.querySelector('.cat-status').innerText = 'PASS';
-                        }
-                    }
-                });
-
                 webStatus.innerText = 'COMPLETED';
                 webStatus.className = 'status-badge completed';
                 webStatusText.innerText = `Audit completed. Checked DNS records, subdomains, open ports, and HTTP header profiles.`;
@@ -301,7 +267,8 @@ const app = {
             item.className = `finding-item severity-${f.severity}`;
             
             let icon = 'fa-circle-check text-green';
-            if (f.severity === 'high') icon = 'fa-circle-xmark text-red';
+            if (f.severity === 'critical') icon = 'fa-triangle-exclamation text-red';
+            else if (f.severity === 'high') icon = 'fa-circle-xmark text-red';
             else if (f.severity === 'warning') icon = 'fa-triangle-exclamation text-yellow';
             else if (f.severity === 'info') icon = 'fa-circle-info text-blue';
 
@@ -434,7 +401,7 @@ const app = {
 
     updateFilterCounts: function (findings, type) {
         document.getElementById(`count-${type}-all`).innerText = findings.length;
-        document.getElementById(`count-${type}-high`).innerText = findings.filter(f => f.severity === 'high').length;
+        document.getElementById(`count-${type}-high`).innerText = findings.filter(f => f.severity === 'high' || f.severity === 'critical').length;
         document.getElementById(`count-${type}-med`).innerText = findings.filter(f => f.severity === 'warning').length;
         document.getElementById(`count-${type}-passed`).innerText = findings.filter(f => f.severity === 'passed').length;
     },
@@ -456,7 +423,7 @@ const app = {
                 const filter = btn.getAttribute('data-filter');
                 let filtered = findings;
                 if (filter === 'high') {
-                    filtered = findings.filter(f => f.severity === 'high');
+                    filtered = findings.filter(f => f.severity === 'high' || f.severity === 'critical');
                 } else if (filter === 'warning') {
                     filtered = findings.filter(f => f.severity === 'warning');
                 } else if (filter === 'passed') {
@@ -685,7 +652,7 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
             terminalLogs.innerHTML = '';
             
             // Clear prior states from category chips
-            const chips = document.querySelectorAll('#owasp-cats-grid .owasp-cat-chip');
+            const chips = document.querySelectorAll('.owasp-cat-chip');
             chips.forEach(chip => {
                 chip.className = 'owasp-cat-chip';
                 chip.querySelector('.cat-status').innerText = '—';
@@ -723,14 +690,15 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
                 // Update category chips based on findings
                 const categories = ['A01', 'A02', 'A03', 'A04', 'A05', 'A06', 'A07', 'A08', 'A09', 'A10'];
                 categories.forEach(cat => {
-                    const catChip = document.querySelector(`#owasp-cats-grid .owasp-cat-chip[data-cat="${cat}"]`);
+                    const catChip = document.querySelector(`.owasp-cat-chip[data-cat="${cat}"]`);
                     if (catChip) {
                         const catFindings = findings.filter(f => f.category === cat);
                         if (catFindings.length > 0) {
+                            const hasCritical = catFindings.some(f => f.severity === 'critical');
                             const hasHigh = catFindings.some(f => f.severity === 'high');
                             const hasWarning = catFindings.some(f => f.severity === 'warning');
                             
-                            if (hasHigh) {
+                            if (hasCritical || hasHigh) {
                                 catChip.classList.add('high');
                                 catChip.querySelector('.cat-status').innerText = 'FAIL';
                             } else if (hasWarning) {
