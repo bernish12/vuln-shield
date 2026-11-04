@@ -1515,11 +1515,42 @@ function attachRemediationToFindings(findings) {
         let impact = item.impact || 'Presents security risks if exploited by malicious actors.';
         let summary = item.solution || item.desc || 'Apply security controls to mitigate this risk.';
         let codeFix = item.codeFix || item.code || '';
-        let cvss = 'N/A';
+        let cvss = item.cvss || 'N/A';
 
         const titleLower = (item.title || '').toLowerCase();
 
-        if (titleLower.includes('hsts')) {
+        if (titleLower.includes('debug endpoint') || titleLower.includes('exposes sensitive data') || titleLower.includes('/debug')) {
+            cvss = '9.8';
+            cwe = 'CWE-200: Exposure of Sensitive Information / CWE-215: Information Disclosure Through Debug Info';
+            impact = 'Attackers can harvest plaintext credentials, secret environment variables, and active session tokens to hijack the entire infrastructure.';
+            summary = 'Disable the /debug route entirely in production environments. Never expose debuggers or diagnostics over public networks.';
+            codeFix = `// Ensure debug endpoints are disabled in production:
+if (process.env.NODE_ENV === 'production') {
+    app.use('/debug', (req, res) => res.status(404).send('Not Found'));
+}`;
+        } else if (titleLower.includes('ssrf') || titleLower.includes('webhook')) {
+            cvss = '9.1';
+            cwe = 'CWE-918: Server-Side Request Forgery (SSRF)';
+            impact = 'Attackers can pivot through your server to access internal networks, cloud metadata (169.254.169.254), or bypass IP firewalls.';
+            summary = 'Validate and strictly allowlist all external fetch URLs. Disallow internal IP ranges (127.0.0.1, 169.254.169.254, 10.0.0.0/8).';
+            codeFix = `// Strict SSRF Allowlist Validation:
+const ALLOWED_HOSTS = ['api.trusteddomain.com', 'hooks.slack.com'];
+const parsedUrl = new URL(userSuppliedUrl);
+if (!ALLOWED_HOSTS.includes(parsedUrl.hostname)) {
+    return res.status(403).json({ error: 'SSRF Protection: Host not permitted' });
+}`;
+        } else if (titleLower.includes('user data exposed') || titleLower.includes('idor')) {
+            cvss = '9.3';
+            cwe = 'CWE-639: Authorization Bypass Through User-Controlled Key (IDOR)';
+            impact = 'Unauthenticated access permits attackers to dump user databases, stolen credit cards, and customer PII.';
+            summary = 'Enforce strict session authentication and verify user ownership before serving records.';
+            codeFix = `// Enforce ownership check in API:
+app.get('/api/user/:id', authenticateUser, (req, res) => {
+    if (req.user.id !== req.params.id && req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Access denied: Cannot view other profiles' });
+    }
+});`;
+        } else if (titleLower.includes('hsts')) {
             cvss = '7.4';
             cwe = 'CWE-523: Unencrypted Transport';
             impact = 'Users are vulnerable to SSL-stripping, MitM eavesdropping, and session hijacking on insecure networks.';
@@ -2617,6 +2648,7 @@ async function handleOwaspScan(body, res) {
             if (isJson || hasSensitiveKeywords) {
                 findings.push({
                     severity: 'critical',
+                    cvss: '9.8',
                     title: `A01 — CRITICAL: ${cp.label} Exposes Sensitive Data (${cp.path})`,
                     desc: `The endpoint \`${cp.path}\` returned HTTP ${probe.status} and appears to expose sensitive application data (passwords, secrets, session tokens, or configuration). This is a CRITICAL vulnerability — attackers can extract credentials and compromise the entire system without authentication.`,
                     solution: `Immediately disable or remove the endpoint \`${cp.path}\`. Never expose debug, admin, or configuration endpoints in production. Use authentication and IP allowlisting for all sensitive endpoints.`,
@@ -2637,6 +2669,7 @@ async function handleOwaspScan(body, res) {
             if (hasUserData) {
                 findings.push({
                     severity: 'critical',
+                    cvss: '9.3',
                     title: `A01 — CRITICAL: Unauthenticated User Data Exposed (${ip})`,
                     desc: `The API endpoint \`${ip}\` returns sensitive user data (passwords, card numbers, tokens, PII) without requiring authentication. This is an Insecure Direct Object Reference (IDOR) — a CRITICAL broken access control vulnerability that enables mass data theft.`,
                     solution: 'Enforce authentication and authorization on ALL API endpoints. Never return passwords, card numbers, CVV, or tokens in API responses. Apply principle of least privilege.',
@@ -2656,6 +2689,7 @@ async function handleOwaspScan(body, res) {
         if (probe.success && probe.status >= 200 && probe.status < 500) {
             findings.push({
                 severity: 'critical',
+                cvss: '9.1',
                 title: `A10 — CRITICAL: SSRF Endpoint Detected (${sp})`,
                 desc: `The endpoint \`${sp}\` appears to accept user-controlled URLs and may perform server-side HTTP requests. SSRF vulnerabilities allow attackers to access internal services, cloud metadata endpoints (AWS/GCP/Azure), or internal admin APIs — bypassing firewall and network controls.`,
                 solution: 'Validate and sanitize all user-supplied URLs. Implement a strict allowlist of permitted domains. Block access to internal IP ranges (10.x, 172.x, 192.168.x, 169.254.x). Use a dedicated HTTP proxy with egress filtering.',
