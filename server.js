@@ -2594,6 +2594,78 @@ async function handleOwaspScan(body, res) {
         logs.push(`[A01] Admin paths are not publicly accessible.`);
     }
 
+    // ── CRITICAL: Debug endpoint exposes all secrets (A05 + A02 combined)
+    logs.push(`[A01] Probing for debug/diagnostic endpoints that expose sensitive data...`);
+    const criticalPaths = [
+        { path: '/debug',              label: 'Debug Endpoint' },
+        { path: '/api/admin/users',    label: 'Admin Users API (Unauthenticated)' },
+        { path: '/.env',               label: 'Environment File' },
+        { path: '/config.json',        label: 'Config File' },
+        { path: '/api/config',         label: 'Config API' },
+        { path: '/server-status',      label: 'Server Status Page' },
+        { path: '/actuator/env',       label: 'Spring Actuator Env (Java)' },
+        { path: '/actuator/health',    label: 'Spring Actuator Health' },
+        { path: '/__debug__',          label: 'Debug Interface' },
+        { path: '/api/file?name=../../package.json', label: 'Path Traversal' },
+    ];
+    for (const cp of criticalPaths) {
+        const probe = await probePath(targetUrl, cp.path);
+        if (probe.success && probe.status >= 200 && probe.status < 400 && probe.body && probe.body.length > 10) {
+            // Check if response looks like sensitive data (JSON with keys, env vars, etc.)
+            const isJson = probe.body.trim().startsWith('{') || probe.body.trim().startsWith('[');
+            const hasSensitiveKeywords = /password|secret|key|token|credential|env|session|user|admin/i.test(probe.body);
+            if (isJson || hasSensitiveKeywords) {
+                findings.push({
+                    severity: 'critical',
+                    title: `A01 — CRITICAL: ${cp.label} Exposes Sensitive Data (${cp.path})`,
+                    desc: `The endpoint \`${cp.path}\` returned HTTP ${probe.status} and appears to expose sensitive application data (passwords, secrets, session tokens, or configuration). This is a CRITICAL vulnerability — attackers can extract credentials and compromise the entire system without authentication.`,
+                    solution: `Immediately disable or remove the endpoint \`${cp.path}\`. Never expose debug, admin, or configuration endpoints in production. Use authentication and IP allowlisting for all sensitive endpoints.`,
+                    category: 'A01'
+                });
+                logs.push(`[A01] CRITICAL: ${cp.path} returned ${probe.status} with sensitive data — CRITICAL EXPOSURE`);
+            }
+        }
+    }
+
+    // ── CRITICAL: IDOR check — unauthenticated access to user data
+    logs.push(`[A01] Checking for IDOR / unauthenticated API data exposure...`);
+    const idorPaths = ['/api/user/1', '/api/users', '/api/user/admin', '/api/profile', '/api/accounts/1'];
+    for (const ip of idorPaths) {
+        const probe = await probePath(targetUrl, ip);
+        if (probe.success && probe.status >= 200 && probe.status < 400 && probe.body) {
+            const hasUserData = /password|card|cvv|ssn|email|phone|token/i.test(probe.body);
+            if (hasUserData) {
+                findings.push({
+                    severity: 'critical',
+                    title: `A01 — CRITICAL: Unauthenticated User Data Exposed (${ip})`,
+                    desc: `The API endpoint \`${ip}\` returns sensitive user data (passwords, card numbers, tokens, PII) without requiring authentication. This is an Insecure Direct Object Reference (IDOR) — a CRITICAL broken access control vulnerability that enables mass data theft.`,
+                    solution: 'Enforce authentication and authorization on ALL API endpoints. Never return passwords, card numbers, CVV, or tokens in API responses. Apply principle of least privilege.',
+                    category: 'A01'
+                });
+                logs.push(`[A01] CRITICAL: ${ip} exposes sensitive user data without auth`);
+                break;
+            }
+        }
+    }
+
+    // ── CRITICAL: SSRF endpoint detection
+    logs.push(`[A10] Checking for SSRF-vulnerable endpoints...`);
+    const ssrfPaths = ['/api/webhook', '/api/webhook/fetch', '/api/fetch', '/api/proxy', '/api/request', '/api/forward', '/proxy'];
+    for (const sp of ssrfPaths) {
+        const probe = await probePath(targetUrl, sp);
+        if (probe.success && probe.status >= 200 && probe.status < 500) {
+            findings.push({
+                severity: 'critical',
+                title: `A10 — CRITICAL: SSRF Endpoint Detected (${sp})`,
+                desc: `The endpoint \`${sp}\` appears to accept user-controlled URLs and may perform server-side HTTP requests. SSRF vulnerabilities allow attackers to access internal services, cloud metadata endpoints (AWS/GCP/Azure), or internal admin APIs — bypassing firewall and network controls.`,
+                solution: 'Validate and sanitize all user-supplied URLs. Implement a strict allowlist of permitted domains. Block access to internal IP ranges (10.x, 172.x, 192.168.x, 169.254.x). Use a dedicated HTTP proxy with egress filtering.',
+                category: 'A10'
+            });
+            logs.push(`[A10] CRITICAL: SSRF-capable endpoint found at ${sp}`);
+            break;
+        }
+    }
+
     // =========================================================================
     // A02: Cryptographic Failures
     // =========================================================================
