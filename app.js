@@ -400,10 +400,17 @@ const app = {
     },
 
     updateFilterCounts: function (findings, type) {
-        document.getElementById(`count-${type}-all`).innerText = findings.length;
-        document.getElementById(`count-${type}-high`).innerText = findings.filter(f => f.severity === 'high' || f.severity === 'critical').length;
-        document.getElementById(`count-${type}-med`).innerText = findings.filter(f => f.severity === 'warning').length;
-        document.getElementById(`count-${type}-passed`).innerText = findings.filter(f => f.severity === 'passed').length;
+        const allEl = document.getElementById(`count-${type}-all`);
+        const critEl = document.getElementById(`count-${type}-crit`);
+        const highEl = document.getElementById(`count-${type}-high`);
+        const medEl = document.getElementById(`count-${type}-med`);
+        const passedEl = document.getElementById(`count-${type}-passed`);
+
+        if (allEl) allEl.innerText = findings.length;
+        if (critEl) critEl.innerText = findings.filter(f => f.severity === 'critical').length;
+        if (highEl) highEl.innerText = findings.filter(f => f.severity === 'high').length;
+        if (medEl) medEl.innerText = findings.filter(f => f.severity === 'warning').length;
+        if (passedEl) passedEl.innerText = findings.filter(f => f.severity === 'passed').length;
     },
 
     setupFilters: function (container, findings, type) {
@@ -422,8 +429,10 @@ const app = {
 
                 const filter = btn.getAttribute('data-filter');
                 let filtered = findings;
-                if (filter === 'high') {
-                    filtered = findings.filter(f => f.severity === 'high' || f.severity === 'critical');
+                if (filter === 'critical') {
+                    filtered = findings.filter(f => f.severity === 'critical');
+                } else if (filter === 'high') {
+                    filtered = findings.filter(f => f.severity === 'high');
                 } else if (filter === 'warning') {
                     filtered = findings.filter(f => f.severity === 'warning');
                 } else if (filter === 'passed') {
@@ -920,7 +929,12 @@ JWT_SECRET=super_secret_auth_token_key_jwt_5521
 
             // Update risk factor text
             if (riskHeader) {
-                if (report.summary.totalScore >= 85) {
+                const hasCritical = (report.owaspScan && report.owaspScan.findings && report.owaspScan.findings.some(f => f.severity === 'critical')) ||
+                                    (report.webScan && report.webScan.findings && report.webScan.findings.some(f => f.severity === 'critical'));
+                if (hasCritical || report.summary.totalScore < 40) {
+                    riskHeader.innerText = 'CRITICAL RISK';
+                    riskHeader.className = 'stat-value text-red pulse-active';
+                } else if (report.summary.totalScore >= 85) {
                     riskHeader.innerText = 'SECURE';
                     riskHeader.className = 'stat-value text-green';
                 } else if (report.summary.totalScore >= 60) {
