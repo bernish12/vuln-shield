@@ -311,6 +311,12 @@ http.createServer((req, res) => {
             }
         } catch(e) { console.error('[GitHub Restore] Sessions pull failed:', e.message); }
     }
+    // Background keep-alive to keep demo targets (like vuln-target) awake on Render free tier
+    setInterval(() => {
+        try {
+            https.get('https://vuln-target.onrender.com/', (r) => { r.resume(); }).on('error', () => {});
+        } catch (_) {}
+    }, 3 * 60 * 1000); // ping every 3 minutes
 });
 
 // Helper to read JSON request body
@@ -2461,7 +2467,7 @@ function fetchUrlFull(targetUrl, maxRedirects = 5, requestMethod = 'GET', postDa
                 port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
                 path: parsed.pathname + parsed.search,
                 method: requestMethod,
-                timeout: 8000,
+                timeout: 10000,
                 headers: headers
             };
 
@@ -2535,7 +2541,12 @@ function parseCookies(setCookieHeaders) {
 async function probePath(baseUrl, pathStr, method = 'GET', postData = null, headers = {}) {
     try {
         const url = new URL(pathStr, baseUrl);
-        return await fetchUrlFull(url.href, 2, method, postData, headers);
+        let res = await fetchUrlFull(url.href, 2, method, postData, headers);
+        if (!res.success && res.error === 'Connection timeout') {
+            // Retry once in case target container was waking up from sleep
+            res = await fetchUrlFull(url.href, 2, method, postData, headers);
+        }
+        return res;
     } catch (_) {
         return { success: false, status: 0, headers: {}, body: '', cookies: [] };
     }
