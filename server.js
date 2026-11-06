@@ -311,12 +311,6 @@ http.createServer((req, res) => {
             }
         } catch(e) { console.error('[GitHub Restore] Sessions pull failed:', e.message); }
     }
-    // Background keep-alive to keep demo targets awake on Render free tier
-    setInterval(() => {
-        try {
-            https.get('https://vuln-target.onrender.com/', (r) => { r.resume(); }).on('error', () => {});
-        } catch (_) {}
-    }, 3 * 60 * 1000); // ping every 3 minutes
 });
 
 // Helper to read JSON request body
