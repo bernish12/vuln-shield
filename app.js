@@ -1241,6 +1241,79 @@ window.openAiModal = function(title, desc, findingId) {
         } else if (vulnLower.includes("cors") || titleLower.includes("cross-origin")) {
             explanation = "A misconfigured CORS (Cross-Origin Resource Sharing) policy has been detected. This can allow unauthorized domains to access your API data. Ensure that 'Access-Control-Allow-Origin' does not use a wildcard (*) for authenticated endpoints.";
             codeSnippet = `// Mitigation for CORS (Express.js)\nconst cors = require('cors');\n\nconst corsOptions = {\n  origin: 'https://your-trusted-site.com',\n  optionsSuccessStatus: 200\n};\n\napp.use(cors(corsOptions));`;
+        } else if (vulnLower.includes("ssrf") || vulnLower.includes("server-side request")) {
+            explanation = "This is a Critical Server-Side Request Forgery (SSRF - CWE-918) vulnerability. The application accepts user-supplied destination URLs without restriction, allowing attackers to pivot into private subnets, query cloud metadata services (e.g., AWS/GCP 169.254.169.254), or access internal microservices. Mitigate this by enforcing a strict domain allowlist and blocking private RFC 1918 IP addresses.";
+            codeSnippet = `// Mitigation for SSRF (CWE-918) - DNS & IP Validation Middleware
+const dns = require('dns').promises;
+const ipRangeCheck = require('ip-range-check');
+
+const BLOCKED_RANGES = [
+    '127.0.0.0/8',      // Loopback
+    '10.0.0.0/8',       // RFC 1918 Private
+    '172.16.0.0/12',    // RFC 1918 Private
+    '192.168.0.0/16',   // RFC 1918 Private
+    '169.254.169.254'   // Cloud Metadata Endpoint
+];
+
+async function validateOutboundUrl(targetUrl) {
+    const parsed = new URL(targetUrl);
+    // 1. Enforce HTTPS only
+    if (parsed.protocol !== 'https:') throw new Error('Insecure protocol');
+    // 2. Resolve DNS to verify destination IP
+    const { address } = await dns.lookup(parsed.hostname);
+    if (ipRangeCheck(address, BLOCKED_RANGES)) {
+        throw new Error('SSRF Blocked: Destination IP is in a private network');
+    }
+    return parsed.href;
+}`;
+        } else if (vulnLower.includes("traversal") || vulnLower.includes("file read") || vulnLower.includes("api/file")) {
+            explanation = "This is a Critical Path Traversal (Arbitrary File Read - CWE-22) vulnerability. The application accepts a filename parameter without sanitizing directory boundary characters ('..'), allowing remote attackers to traverse out of the intended directory and read sensitive server files like configuration, source code, or credentials.";
+            codeSnippet = `// Mitigation for Path Traversal (CWE-22)
+const path = require('path');
+const fs = require('fs');
+
+const SAFE_DIRECTORY = path.resolve(__dirname, 'public', 'uploads');
+
+app.get('/api/file', (req, res) => {
+    const fileName = req.query.name;
+    if (!fileName) return res.status(400).json({ error: 'Filename is required' });
+
+    // 1. Strip directory traversal sequences using path.basename
+    const safeFileName = path.basename(fileName);
+    const resolvedPath = path.resolve(SAFE_DIRECTORY, safeFileName);
+
+    // 2. Enforce directory boundary check
+    if (!resolvedPath.startsWith(SAFE_DIRECTORY)) {
+        return res.status(403).json({ error: 'Access denied: Directory traversal detected' });
+    }
+
+    if (!fs.existsSync(resolvedPath)) return res.status(404).json({ error: 'File not found' });
+    res.sendFile(resolvedPath);
+});`;
+        } else if (vulnLower.includes("debug") || vulnLower.includes("sensitive data")) {
+            explanation = "This is a Critical Information Exposure vulnerability (CWE-200 / CWE-215). Telemetry and debug endpoints exposing environment variables, session records, or credentials must never be accessible in production. Disable this endpoint or restrict it strictly to local development.";
+            codeSnippet = `// Mitigation for Sensitive Debug Endpoint Exposure
+app.get('/debug', (req, res) => {
+    // 1. Never serve debug endpoints in production
+    if (process.env.NODE_ENV === 'production') {
+        return res.status(404).send('Not Found');
+    }
+    // 2. Require strict administrative session & IP allowlist in staging
+    if (!req.session?.isAdmin || req.ip !== '127.0.0.1') {
+        return res.status(403).json({ error: 'Restricted to local development' });
+    }
+    res.json({ status: 'Dev diagnostics OK' });
+});`;
+        } else if (vulnLower.includes("hsts") || titleLower.includes("strict-transport")) {
+            explanation = "The Strict-Transport-Security (HSTS - CWE-319) header is missing. Without HSTS, browsers can be coerced into connecting over unencrypted HTTP via SSL-stripping attacks. Add HSTS with a 2-year duration, includeSubDomains, and preload directive.";
+            codeSnippet = `// Express.js / Helmet HSTS Configuration
+const helmet = require('helmet');
+
+app.use(helmet.hsts({
+    maxAge: 63072000,      // 2 years in seconds
+    includeSubDomains: true, // Apply to all subdomains
+    preload: true           // Eligible for Chrome/Firefox HSTS preload list
+}));`;
         } else if (vulnLower.includes("admin") || vulnLower.includes("access control") || vulnLower.includes("authorization")) {
             explanation = "I detected an Access Control vulnerability. Sensitive paths (like /admin) or administrative endpoints should never be publicly accessible. You must enforce strict authentication checks and Role-Based Access Control (RBAC) to ensure only authorized personnel can access these resources.";
             codeSnippet = `// Mitigation for Broken Access Control (Express.js)\nconst ensureAdmin = (req, res, next) => {\n    // Verify user is authenticated and has 'admin' role\n    if (req.user && req.user.role === 'admin') {\n        return next();\n    }\n    return res.status(403).json({ error: 'Forbidden: Admin access required' });\n};\n\n// Secure the admin route\napp.use('/admin', ensureAdmin, adminRouter);`;
