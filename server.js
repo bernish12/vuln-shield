@@ -153,7 +153,7 @@ function logVisit(req) {
     // Ignore static assets to prevent log bloat
     if (req.url.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|json|xml|txt)$/i)) return;
 
-    const ip = req.socket.remoteAddress || req.headers['x-forwarded-for'] || 'Unknown IP';
+    const ip = (req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : req.socket.remoteAddress) || 'Unknown IP';
     const userAgent = req.headers['user-agent'] || 'Unknown Device';
     const url = req.url;
     const timestamp = new Date().toISOString();
@@ -638,7 +638,7 @@ async function handleApiRequest(req, res) {
         }
         const { username, password } = body || {};
 
-        const ip = req.socket.remoteAddress || req.headers['x-forwarded-for'] || 'Unknown IP';
+        const ip = (req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : req.socket.remoteAddress) || 'Unknown IP';
         const userAgent = req.headers['user-agent'] || 'Unknown Device';
         const timestamp = new Date().toISOString();
 
