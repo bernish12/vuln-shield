@@ -41,8 +41,8 @@ function hashUserPassword(pwd) {
 }
 
 const USERS = {
-    'bernish2004cyber': { passwordHash: hashUserPassword('bernish@2004cyber08'), role: 'admin' },
-    'vulnshield12': { passwordHash: hashUserPassword('vuln@12'), role: 'user' }
+    'bernish2004@8': { passwordHash: hashUserPassword('bernish@2004fah'), role: 'admin' },
+    'vuln12@12': { passwordHash: hashUserPassword('shield@12'), role: 'user' }
 };
 
 try { if (fs.existsSync(SESSIONS_FILE)) activeSessions = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8')); } catch(e) {}
