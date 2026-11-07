@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 8000;
 
 // ── HMAC-signed token helpers ──────────────────────────────────────────────
 // Using a fixed secret (env var preferred in production).
-const TOKEN_SECRET = process.env.TOKEN_SECRET || 'vulnshield-default-secret-change-me';
+const TOKEN_SECRET = process.env.TOKEN_SECRET || crypto.randomBytes(64).toString('hex');
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // --- Global State for Advanced Analytics ---
