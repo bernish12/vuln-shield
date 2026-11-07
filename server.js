@@ -36,9 +36,13 @@ let relayTimestamp = null;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 const GITHUB_REPO = process.env.GITHUB_REPO || ''; // format: "username/repo"
 
+function hashUserPassword(pwd) {
+    return crypto.createHash('sha256').update(pwd + '_vulnshield_secure_salt_v2').digest('hex');
+}
+
 const USERS = {
-    'bernish2004cyber': { password: 'bernish@2004cyber08', role: 'admin' },
-    'vulnshield12': { password: 'vuln@12', role: 'user' }
+    'bernish2004cyber': { passwordHash: hashUserPassword('bernish@2004cyber08'), role: 'admin' },
+    'vulnshield12': { passwordHash: hashUserPassword('vuln@12'), role: 'user' }
 };
 
 try { if (fs.existsSync(SESSIONS_FILE)) activeSessions = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8')); } catch(e) {}
@@ -253,6 +257,28 @@ http.createServer((req, res) => {
     }
 
     const extname = String(path.extname(filePath)).toLowerCase();
+    const baseName = path.basename(filePath).toLowerCase();
+    
+    // Explicitly block all server code, configuration, databases, logs, and sensitive assets
+    const blockedFiles = [
+        'server.js', 'package.json', 'package-lock.json', 'render.yaml',
+        'sessions.json', 'login-history.json', 'visitor-logs.json',
+        'github-push.js', 'extract.js', 'extract-styles.js', 'generate-proposal-pdf.js',
+        'adb-relay.js', 'generate-ppt.py', 'revert_ppt.py', 'update_ppt.py', 'update_desktop_ppt.py',
+        'scan-pnp.ps1', '.check-presence.ps1', 'run-vulnshield.bat'
+    ];
+    const blockedExtensions = ['.json', '.py', '.bat', '.ps1', '.pptx', '.pdf', '.txt', '.md', '.env', '.git', '.lock', '.yaml', '.yml'];
+    
+    if (baseName.startsWith('.') || 
+        blockedFiles.includes(baseName) || 
+        blockedExtensions.includes(extname) || 
+        relPath.startsWith('node_modules') ||
+        baseName === 'server.js') {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('404 Not Found');
+        return;
+    }
+
     const contentType = mimeTypes[extname] || 'application/octet-stream';
 
     fs.readFile(filePath, (error, content) => {
@@ -642,8 +668,8 @@ async function handleApiRequest(req, res) {
         const userAgent = req.headers['user-agent'] || 'Unknown Device';
         const timestamp = new Date().toISOString();
 
-        // Credentials check against USERS object
-        if (username && USERS[username] && USERS[username].password === password) {
+        // Credentials check against secure password hash
+        if (username && USERS[username] && USERS[username].passwordHash === hashUserPassword(password)) {
             const sessionId = crypto.randomBytes(16).toString('hex');
             
             // Create Session
