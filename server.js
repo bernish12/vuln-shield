@@ -71,8 +71,8 @@ function recordLoginFailure(ip) {
     const now = Date.now();
     const record = loginAttempts.get(ip) || { count: 0, lockedUntil: 0 };
     record.count += 1;
-    if (record.count >= 5) {
-        record.lockedUntil = now + (15 * 60 * 1000); // 15-minute lock
+    if (record.count >= 4) {
+        record.lockedUntil = now + (30 * 60 * 1000); // 30-minute lock
     }
     loginAttempts.set(ip, record);
 }
@@ -738,7 +738,7 @@ async function handleApiRequest(req, res) {
             });
             res.end(JSON.stringify({
                 success: false,
-                error: `Too many failed attempts. Temporarily locked for security. Try again in ${rateLimit.remainingSec}s.`
+                error: `Security Lockout: 4 failed attempts exceeded. IP is locked for 30 minutes. Try again in ${Math.ceil(rateLimit.remainingSec / 60)} minute(s).`
             }));
             return;
         }
