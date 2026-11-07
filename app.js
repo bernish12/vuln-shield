@@ -35,9 +35,10 @@ const app = {
             const token = sessionStorage.getItem('vulnshield_token') || localStorage.getItem('vulnshield_token') || localStorage.getItem('vuln_token');
             if (token) {
                 const decodedPayload = atob(token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'));
-                const username = decodedPayload.split(':')[0];
+                const parts = decodedPayload.split(':');
+                const role = parts.length >= 4 ? parts[2] : (parts[0] === 'bernish2004@8' ? 'admin' : 'user');
                 const analyticsNav = document.getElementById('nav-visitor-analytics');
-                if (analyticsNav && username === 'bernish2004@8') {
+                if (analyticsNav && role === 'admin') {
                     analyticsNav.style.display = 'flex';
                 }
             }
