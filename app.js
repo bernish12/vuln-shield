@@ -37,7 +37,7 @@ const app = {
                 const decodedPayload = atob(token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'));
                 const username = decodedPayload.split(':')[0];
                 const analyticsNav = document.getElementById('nav-visitor-analytics');
-                if (analyticsNav && username === 'bernish2004cyber') {
+                if (analyticsNav && username === 'bernish2004@8') {
                     analyticsNav.style.display = 'flex';
                 }
             }
