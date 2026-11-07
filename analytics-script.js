@@ -23,7 +23,7 @@ function parseUserAgent(ua) {
             try {
                 const decodedPayload = atob(token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'));
                 const username = decodedPayload.split(':')[0];
-                if (username !== 'bernish2004cyber') {
+                if (username !== 'bernish2004@8') {
                     window.location.href = '/index.html';
                     return;
                 }
@@ -102,7 +102,7 @@ function parseUserAgent(ua) {
                     const parts = decodedPayload.split(':');
                     const username = parts[0];
                     currentSessionId = parts[1];
-                    if (username === 'bernish2004cyber') {
+                    if (username === 'bernish2004@8') {
                         currentUserRole = 'admin';
                     }
                 }
