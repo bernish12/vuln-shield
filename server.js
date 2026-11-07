@@ -36,26 +36,84 @@ let relayTimestamp = null;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 const GITHUB_REPO = process.env.GITHUB_REPO || ''; // format: "username/repo"
 
+const SALT = '_vulnshield_secure_salt_v2';
 function hashUserPassword(pwd) {
-    return crypto.createHash('sha256').update(pwd + '_vulnshield_secure_salt_v2').digest('hex');
+    return crypto.createHash('sha256').update(String(pwd || '') + SALT).digest('hex');
 }
 
+function timingSafeCompare(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    const bufA = Buffer.from(a);
+    const bufB = Buffer.from(b);
+    if (bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
+}
+
+// In-memory brute force & rate limiting tracker
+const loginAttempts = new Map(); // ip -> { count: number, lockedUntil: number }
+
+function checkLoginRateLimit(ip) {
+    const now = Date.now();
+    const record = loginAttempts.get(ip);
+    if (!record) return { allowed: true };
+    if (record.lockedUntil && record.lockedUntil > now) {
+        const remainingSec = Math.ceil((record.lockedUntil - now) / 1000);
+        return { allowed: false, remainingSec };
+    }
+    if (record.lockedUntil && record.lockedUntil <= now) {
+        loginAttempts.delete(ip);
+        return { allowed: true };
+    }
+    return { allowed: true };
+}
+
+function recordLoginFailure(ip) {
+    const now = Date.now();
+    const record = loginAttempts.get(ip) || { count: 0, lockedUntil: 0 };
+    record.count += 1;
+    if (record.count >= 5) {
+        record.lockedUntil = now + (15 * 60 * 1000); // 15-minute lock
+    }
+    loginAttempts.set(ip, record);
+}
+
+function recordLoginSuccess(ip) {
+    loginAttempts.delete(ip);
+}
+
+// Pre-hashed Salted SHA-256 Hashes — Zero plaintext passwords in code
 const USERS = {
-    'bernish2004@8': { passwordHash: hashUserPassword('bernish@2004fah'), role: 'admin' },
-    'vuln12@12': { passwordHash: hashUserPassword('shield@12'), role: 'user' }
+    'bernish2004@8': { 
+        passwordHash: process.env.ADMIN_HASH || 'd2e46d6951ae0b97e2189e63412243d07d44ce1429a928313d5ef99c9a3f56de', 
+        role: 'admin' 
+    },
+    'vuln12@12': { 
+        passwordHash: process.env.USER_HASH || '80f225d579d4f3413efbb8eaae399999e7df310296f3750aedd8aca8dc660ad6', 
+        role: 'user' 
+    }
 };
+
+function isRestrictedHost(hostname) {
+    if (!hostname) return true;
+    const h = hostname.toLowerCase().trim();
+    if (h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '0.0.0.0') return true;
+    if (h.endsWith('.internal') || h.endsWith('.local') || h.endsWith('.localhost')) return true;
+    if (h === '169.254.169.254' || h.startsWith('169.254.')) return true;
+    if (/^10\./.test(h)) return true;
+    if (/^192\.168\./.test(h)) return true;
+    if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(h)) return true;
+    return false;
+}
 
 try { if (fs.existsSync(SESSIONS_FILE)) activeSessions = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8')); } catch(e) {}
 try { if (fs.existsSync(LOGIN_HISTORY_FILE)) loginHistory = JSON.parse(fs.readFileSync(LOGIN_HISTORY_FILE, 'utf8')); } catch(e) {}
 
 function saveSessions() { 
     fs.writeFile(SESSIONS_FILE, JSON.stringify(activeSessions, null, 2), () => {}); 
-    syncToGithub('sessions.json', JSON.stringify(activeSessions, null, 2));
 }
 
 function saveLoginHistory() { 
     fs.writeFile(LOGIN_HISTORY_FILE, JSON.stringify(loginHistory, null, 2), () => {}); 
-    syncToGithub('login-history.json', JSON.stringify(loginHistory, null, 2));
 }
 
 async function syncToGithub(filePath, contentStr) {
@@ -101,8 +159,8 @@ async function syncToGithub(filePath, contentStr) {
     }
 }
 
-function signToken(username, sessionId) {
-    const payload = `${username}:${sessionId}:${Date.now()}`;
+function signToken(username, sessionId, role = 'user') {
+    const payload = `${username}:${sessionId}:${role}:${Date.now()}`;
     const sig = crypto.createHmac('sha256', TOKEN_SECRET).update(payload).digest('hex');
     return Buffer.from(`${payload}.${sig}`).toString('base64url');
 }
@@ -117,11 +175,12 @@ function verifyToken(token) {
         const expectedSig = crypto.createHmac('sha256', TOKEN_SECRET).update(payload).digest('hex');
         if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig))) return false;
         
-        // Check TTL and Session
         const parts = payload.split(':');
         if (parts.length < 3) return false;
+        const username = parts[0];
         const sessionId = parts[1];
-        const issuedAt = parseInt(parts[2], 10);
+        let role = parts.length >= 4 ? parts[2] : (USERS[username]?.role || 'user');
+        const issuedAt = parseInt(parts.length >= 4 ? parts[3] : parts[2], 10);
         
         if (isNaN(issuedAt) || Date.now() - issuedAt > TOKEN_TTL_MS) return false;
         if (!activeSessions[sessionId]) return false; // Session was kicked or doesn't exist
@@ -130,7 +189,7 @@ function verifyToken(token) {
         activeSessions[sessionId].lastActive = new Date().toISOString();
         saveSessions();
         
-        return true;
+        return { username, sessionId, role };
     } catch {
         return false;
     }
@@ -184,19 +243,17 @@ function logVisit(req) {
 
 // Start server
 http.createServer((req, res) => {
-    // Apply OWASP recommended security headers
+    // Apply OWASP A+ recommended security headers
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     res.setHeader('Content-Security-Policy', "default-src 'self' https: data: blob: wss: ws:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; img-src 'self' data: https: blob:;");
-    res.setHeader('X-RateLimit-Limit', '100');
-    res.setHeader('RateLimit-Limit', '100');
-    res.setHeader('Retry-After', '3600');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-    res.setHeader('Report-To', '{"group":"default","max_age":31536000,"endpoints":[{"url":"https://vuln-shield-k5fw.onrender.com/api/report"}]}');
-    res.setHeader('NEL', '{"report_to":"default","max_age":31536000,"include_subdomains":true}');
-    res.setHeader('Set-Cookie', 'vulnshield_session=secure_val; Secure; HttpOnly; SameSite=Strict; Path=/');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=()');
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+    res.setHeader('Server', 'VulnShield-Security-Gateway');
 
     logVisit(req);
     // Check if it is an API request
@@ -260,18 +317,22 @@ http.createServer((req, res) => {
     const baseName = path.basename(filePath).toLowerCase();
     
     // Explicitly block all server code, configuration, databases, logs, and sensitive assets
-    const blockedFiles = [
+        const ALLOWED_STATIC_EXTENSIONS = [
+        '.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', 
+        '.svg', '.ico', '.woff', '.woff2', '.ttf', '.webp', '.map'
+    ];
+    
+    const BLOCKED_FILENAMES = [
         'server.js', 'package.json', 'package-lock.json', 'render.yaml',
         'sessions.json', 'login-history.json', 'visitor-logs.json',
         'github-push.js', 'extract.js', 'extract-styles.js', 'generate-proposal-pdf.js',
         'adb-relay.js', 'generate-ppt.py', 'revert_ppt.py', 'update_ppt.py', 'update_desktop_ppt.py',
-        'scan-pnp.ps1', '.check-presence.ps1', 'run-vulnshield.bat'
+        'scan-pnp.ps1', '.check-presence.ps1', 'run-vulnshield.bat', 'license', 'dockerfile'
     ];
-    const blockedExtensions = ['.json', '.py', '.bat', '.ps1', '.pptx', '.pdf', '.txt', '.md', '.env', '.git', '.lock', '.yaml', '.yml'];
-    
+
     if (baseName.startsWith('.') || 
-        blockedFiles.includes(baseName) || 
-        blockedExtensions.includes(extname) || 
+        BLOCKED_FILENAMES.includes(baseName) || 
+        !ALLOWED_STATIC_EXTENSIONS.includes(extname) || 
         relPath.startsWith('node_modules') ||
         baseName === 'server.js') {
         res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
@@ -652,7 +713,7 @@ async function handleApiRequest(req, res) {
         return;
     }
 
-    // Login endpoint handling
+    // Login endpoint handling with Brute-Force & Rate-Limit Protection
     if (parsedUrl === '/api/login') {
         let body;
         try {
@@ -668,8 +729,26 @@ async function handleApiRequest(req, res) {
         const userAgent = req.headers['user-agent'] || 'Unknown Device';
         const timestamp = new Date().toISOString();
 
-        // Credentials check against secure password hash
-        if (username && USERS[username] && USERS[username].passwordHash === hashUserPassword(password)) {
+        // 1. Check Rate Limit & Brute-Force Lockout
+        const rateLimit = checkLoginRateLimit(ip);
+        if (!rateLimit.allowed) {
+            res.writeHead(429, {
+                'Content-Type': 'application/json',
+                'Retry-After': String(rateLimit.remainingSec)
+            });
+            res.end(JSON.stringify({
+                success: false,
+                error: `Too many failed attempts. Temporarily locked for security. Try again in ${rateLimit.remainingSec}s.`
+            }));
+            return;
+        }
+
+        // 2. Validate Credentials with Timing-Safe Comparison
+        const user = username ? USERS[username] : null;
+        const inputHash = hashUserPassword(password);
+        
+        if (user && timingSafeCompare(user.passwordHash, inputHash)) {
+            recordLoginSuccess(ip);
             const sessionId = crypto.randomBytes(16).toString('hex');
             
             // Create Session
@@ -677,7 +756,7 @@ async function handleApiRequest(req, res) {
                 ip,
                 userAgent,
                 username,
-                role: USERS[username].role,
+                role: user.role,
                 loginTime: timestamp,
                 lastActive: timestamp
             };
@@ -688,12 +767,13 @@ async function handleApiRequest(req, res) {
             if (loginHistory.length > 500) loginHistory = loginHistory.slice(0, 500);
             saveLoginHistory();
 
-            const token = signToken(username, sessionId);
+            const token = signToken(username, sessionId, user.role);
             res.writeHead(200);
-            res.end(JSON.stringify({ success: true, token }));
+            res.end(JSON.stringify({ success: true, token, role: user.role }));
         } else {
+            recordLoginFailure(ip);
             // Log Failure
-            loginHistory.unshift({ timestamp, ip, userAgent, username, status: 'failed' });
+            loginHistory.unshift({ timestamp, ip, userAgent, username: username || 'Unknown', status: 'failed' });
             if (loginHistory.length > 500) loginHistory = loginHistory.slice(0, 500);
             saveLoginHistory();
 
@@ -712,10 +792,10 @@ async function handleApiRequest(req, res) {
             return;
         }
         const token = authHeader.split(' ')[1];
-        // Verify cryptographically — no in-memory store needed
-        if (verifyToken(token)) {
+        const verified = verifyToken(token);
+        if (verified) {
             res.writeHead(200);
-            res.end(JSON.stringify({ valid: true }));
+            res.end(JSON.stringify({ valid: true, role: verified.role, username: verified.username }));
         } else {
             res.writeHead(401);
             res.end(JSON.stringify({ valid: false, error: 'Token expired or invalid' }));
@@ -1887,7 +1967,7 @@ function getSecurityHeaders(domain, useHttp = false, redirectsLeft = 3) {
 async function handleWebScan(body, res) {
     const { domain } = body;
     const cleanDomain = sanitizeDomain(domain);
-    if (!cleanDomain) {
+    if (!cleanDomain || isRestrictedHost(cleanDomain)) {
         res.writeHead(400);
         res.end(JSON.stringify({ error: 'Invalid domain target' }));
         return;
@@ -2585,6 +2665,11 @@ async function handleOwaspScan(body, res) {
     try {
         const parsed = new URL(url);
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error('Bad scheme');
+        if (isRestrictedHost(parsed.hostname)) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: 'Prohibited target: Scanning loopback, private IP, or metadata endpoints is restricted.' }));
+            return;
+        }
         targetUrl = parsed.href;
     } catch (_) {
         res.writeHead(400);
